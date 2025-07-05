@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Bot } from 'lucide-react';
-import { Line, LineChart, CartesianGrid, XAxis, Tooltip, ResponsiveContainer, YAxis } from 'recharts';
+import { ComposedChart, Line, CartesianGrid, XAxis, Tooltip, ResponsiveContainer, YAxis, Scatter } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { cn } from '@/lib/utils';
 
 type ResultsDisplayProps = {
   result: AIStrategyAdvisorOutput;
@@ -17,10 +18,29 @@ const chartConfig = {
     label: 'PnL ($)',
     color: 'hsl(var(--primary))',
   },
+  buy: {
+    label: 'Buy',
+    color: 'hsl(var(--chart-2))',
+  },
+  sell: {
+    label: 'Sell',
+    color: 'hsl(var(--destructive))',
+  },
 };
 
 export default function ResultsDisplay({ result }: ResultsDisplayProps) {
   const { backtest, suggestions, rationale } = result;
+
+  const tradeEvents = backtest.chartEvents?.map(e => {
+    const pnlPoint = backtest.pnlData.find(p => p.day === e.day);
+    return {
+      ...e,
+      pnl: pnlPoint ? pnlPoint.pnl : null,
+    };
+  }).filter(e => e.pnl !== null) ?? [];
+
+  const buyEvents = tradeEvents.filter(e => e.type === 'BUY');
+  const sellEvents = tradeEvents.filter(e => e.type === 'SELL');
   
   return (
     <div className="mt-6 space-y-6 animate-in fade-in-50 duration-500">
@@ -55,7 +75,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
           <CardDescription>AI-generated backtest results based on historical patterns.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 text-center">
             <Card>
                 <CardHeader><CardTitle>${backtest.totalPnl.toLocaleString()}</CardTitle></CardHeader>
                 <CardContent><p className="text-sm text-muted-foreground">Total PnL</p></CardContent>
@@ -72,19 +92,25 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                 <CardHeader><CardTitle>{backtest.totalTrades}</CardTitle></CardHeader>
                 <CardContent><p className="text-sm text-muted-foreground">Total Trades</p></CardContent>
             </Card>
+             <Card>
+                <CardHeader><CardTitle>{backtest.sharpeRatio?.toFixed(2) ?? 'N/A'}</CardTitle></CardHeader>
+                <CardContent><p className="text-sm text-muted-foreground">Sharpe Ratio</p></CardContent>
+            </Card>
           </div>
-          <div className="h-[300px] w-full">
-            <ChartContainer config={chartConfig} className="w-full h-full">
-                <LineChart data={backtest.pnlData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+          <div className="h-[350px] w-full">
+             <ChartContainer config={chartConfig} className="w-full h-full">
+                <ComposedChart data={backtest.pnlData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
                     <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" tickFormatter={(tick) => `Day ${tick}`} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `$${value}`} />
+                    <YAxis dataKey="pnl" stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `$${value}`} />
                     <Tooltip 
                         cursor={{fill: 'hsl(var(--primary) / 0.1)'}} 
                         content={<ChartTooltipContent indicator="line" />}
                     />
                     <Line type="monotone" dataKey="pnl" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                </LineChart>
+                    <Scatter name="Buy" data={buyEvents} fill="hsl(var(--chart-2))" shape="triangle" />
+                    <Scatter name="Sell" data={sellEvents} fill="hsl(var(--destructive))" shape="cross" />
+                </ComposedChart>
             </ChartContainer>
           </div>
         </CardContent>
@@ -111,7 +137,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
               {backtest.tradeLog.map((trade) => (
                 <TableRow key={trade.id} className="hover:bg-primary/10 border-primary/10">
                   <TableCell>
-                    <Badge variant={trade.type === 'BUY' ? 'default' : 'destructive'} className={`${trade.type === 'BUY' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'} hover:bg-transparent`}>
+                    <Badge variant={trade.type === 'BUY' ? 'default' : 'destructive'} className={cn(`${trade.type === 'BUY' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`, "hover:bg-transparent")}>
                       {trade.type}
                     </Badge>
                   </TableCell>

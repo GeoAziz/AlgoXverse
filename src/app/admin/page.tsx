@@ -4,13 +4,19 @@ import { getStrategiesForApproval, getAllUsers } from "./actions";
 import { UserManagementTable } from "@/components/admin/user-management-table";
 import { StrategyApprovalTable } from "@/components/admin/strategy-approval-table";
 import { ShieldCheck, Users } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default async function AdminPage() {
     const users = await getAllUsers();
     const strategies = await getStrategiesForApproval();
 
     return (
-        <div className="flex flex-col gap-8">
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col gap-8"
+        >
             <div>
                 <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Admin Panel</h1>
                 <p className="text-muted-foreground max-w-2xl">
@@ -56,6 +62,6 @@ export default async function AdminPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
-        </div>
+        </motion.div>
     )
 }

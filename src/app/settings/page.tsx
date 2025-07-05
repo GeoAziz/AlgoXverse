@@ -4,10 +4,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { BellRing, Mail, KeyRound, CreditCard, Shield } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { motion } from "framer-motion";
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col gap-8"
+    >
       <div>
         <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Settings</h1>
         <p className="text-muted-foreground max-w-2xl">
@@ -100,6 +106,6 @@ export default function SettingsPage() {
             </Card>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

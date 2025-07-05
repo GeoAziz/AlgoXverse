@@ -7,6 +7,7 @@ import ResultsDisplay from '@/components/advisor/results-display';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { BrainCircuit } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function AdvisorPage() {
   const [result, setResult] = useState<AIStrategyAdvisorOutput | null>(null);
@@ -44,7 +45,12 @@ export default function AdvisorPage() {
   );
 
   return (
-    <div className="flex flex-col gap-8">
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col gap-8"
+    >
       <div>
         <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">AI Strategy Advisor</h1>
         <p className="text-muted-foreground max-w-2xl">
@@ -72,6 +78,6 @@ export default function AdvisorPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </motion.div>
   );
 }

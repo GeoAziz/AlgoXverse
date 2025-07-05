@@ -1,5 +1,3 @@
-// This file is machine-generated - edit at your own risk!
-
 'use server';
 
 /**
@@ -12,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { calculateSharpeRatio } from '@/services/trading-metrics';
 
 const AIStrategyAdvisorInputSchema = z.object({
   strategyCode: z
@@ -34,6 +33,12 @@ const TradeLogEntrySchema = z.object({
   status: z.enum(['Open', 'Closed']).describe('The status of the trade.'),
 });
 
+const ChartEventSchema = z.object({
+  day: z.number(),
+  type: z.enum(['BUY', 'SELL']),
+  price: z.number(),
+});
+
 const BacktestMetricsSchema = z.object({
   totalPnl: z.number().describe('Total profit or loss in USD.'),
   winRate: z.number().describe('Percentage of winning trades (0 to 100).'),
@@ -41,6 +46,8 @@ const BacktestMetricsSchema = z.object({
   totalTrades: z.number().describe('Total number of trades executed.'),
   pnlData: z.array(z.object({ day: z.number(), pnl: z.number() })).describe('An array of 15-20 data points for a PnL chart over time (e.g., by day).'),
   tradeLog: z.array(TradeLogEntrySchema).max(5).describe('A log of the 5 most significant simulated trades from the backtest.'),
+  chartEvents: z.array(ChartEventSchema).describe('An array of buy and sell events to be plotted on the performance chart.'),
+  sharpeRatio: z.number().optional().describe('The calculated Sharpe Ratio of the strategy.'),
 });
 
 const AIStrategyAdvisorOutputSchema = z.object({
@@ -64,10 +71,25 @@ export async function analyzeStrategy(input: AIStrategyAdvisorInput): Promise<AI
   return aiStrategyAdvisorFlow(input);
 }
 
+
+const backtestingTool = ai.defineTool(
+  {
+    name: 'calculateAdvancedMetrics',
+    description: 'Calculates advanced trading performance metrics like the Sharpe Ratio from a series of Profit and Loss (PnL) data points. Use this to provide a quantitative assessment of the strategy\'s risk-adjusted return.',
+    inputSchema: z.object({ pnlData: z.array(z.object({ day: z.number(), pnl: z.number() })) }),
+    outputSchema: z.object({ sharpeRatio: z.number() }),
+  },
+  async ({ pnlData }) => {
+    const sharpeRatio = await calculateSharpeRatio(pnlData);
+    return { sharpeRatio };
+  }
+);
+
 const prompt = ai.definePrompt({
   name: 'aiStrategyAdvisorPrompt',
   input: {schema: AIStrategyAdvisorInputSchema},
   output: {schema: AIStrategyAdvisorOutputSchema},
+  tools: [backtestingTool],
   prompt: `You are an AI-powered trading strategy advisor. Analyze the provided trading strategy and historical market data to suggest optimizations and improvements.
 
 Trading Strategy Code:
@@ -78,9 +100,13 @@ Historical Market Data:
 
 First, provide specific suggestions for optimizing the trading strategy. Include the rationale behind each suggestion, explaining why it may improve performance. Focus on aspects like parameter adjustments, risk management techniques, and alternative trading rules.
 
-Second, run a plausible simulation of a backtest based on the strategy and historical data. Generate realistic performance metrics for the 'backtest' output field, including PnL, win rate, profit factor, total trades, PnL data for a chart, and a log of a few significant trades. The simulation should appear credible.
+Second, run a plausible simulation of a backtest based on the strategy and historical data. Generate realistic performance metrics for the 'backtest' output field.
 
-Output your analysis in the required structured format.
+Third, use the 'calculateAdvancedMetrics' tool to calculate the Sharpe Ratio for the generated PnL data. Include this Sharpe Ratio in your analysis and in the 'backtest.sharpeRatio' output field. Your rationale should explain what this Sharpe Ratio indicates about the strategy's risk-adjusted performance.
+
+Finally, generate a series of BUY and SELL events for the 'backtest.chartEvents' field that correspond to the PnL data, which can be used to visualize trades on a chart.
+
+Output your complete analysis in the required structured format.
 `,
 });
 

@@ -14,7 +14,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, BrainCircuit, Settings, LogIn, LogOut, ShieldCheck, UserCog } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, Settings, LogIn, LogOut, ShieldCheck, UserCog, TerminalSquare } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,12 +23,15 @@ import { Button } from '../ui/button';
 import { useAuth } from '@/context/auth-context';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CommandConsole } from './command-console';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isActive = (path: string) => pathname.startsWith(path);
   const { user, loading, role } = useAuth();
+  const [isConsoleOpen, setConsoleOpen] = React.useState(false);
   
   const protectedRoutes = ['/advisor', '/settings'];
   const adminRoutes = ['/admin'];
@@ -134,6 +137,12 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+         {user && (
+            <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => setConsoleOpen(true)}>
+                <TerminalSquare className="w-5 h-5 text-accent" />
+                <span className="text-muted-foreground">Command Console</span>
+            </Button>
+          )}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -181,7 +190,15 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
         )}
-        <main className={`flex-1 ${pathname !== '/auth' ? 'p-4 lg:p-6': ''}`}>{children}</main>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.main
+              key={pathname}
+              className={`flex-1 ${pathname !== '/auth' ? 'p-4 lg:p-6': ''}`}
+          >
+              {children}
+          </motion.main>
+        </AnimatePresence>
+        <CommandConsole isOpen={isConsoleOpen} onClose={() => setConsoleOpen(false)} />
       </SidebarInset>
     </SidebarProvider>
   );

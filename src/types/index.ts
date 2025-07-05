@@ -11,6 +11,12 @@ export interface AppUser {
     createdAt: Timestamp;
 }
 
+export interface ChartEvent {
+    day: number;
+    type: 'BUY' | 'SELL';
+    price: number;
+}
+
 export interface Strategy {
     id: string;
     userId: string;

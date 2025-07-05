@@ -88,10 +88,20 @@ export default {
             height: '0',
           },
         },
+        'blink-cursor': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        scanline: {
+          '0%': { transform: 'translateY(0%)' },
+          '100%': { transform: 'translateY(100%)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'blink-cursor': 'blink-cursor 1.2s step-end infinite',
+        scanline: 'scanline 10s linear infinite',
       },
     },
   },
