@@ -87,7 +87,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/" legacyBehavior passHref>
+              <Link href="/">
                 <SidebarMenuButton isActive={pathname === '/'} tooltip="Dashboard">
                   <LayoutDashboard />
                   <span>Dashboard</span>
@@ -97,7 +97,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             {user && (
               <>
                 <SidebarMenuItem>
-                  <Link href="/advisor" legacyBehavior passHref>
+                  <Link href="/advisor">
                     <SidebarMenuButton isActive={isActive('/advisor')} tooltip="AI Advisor">
                       <BrainCircuit />
                       <span>AI Advisor</span>
@@ -105,7 +105,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <Link href="/settings" legacyBehavior passHref>
+                  <Link href="/settings">
                     <SidebarMenuButton isActive={isActive('/settings')} tooltip="Settings">
                       <Settings />
                       <span>Settings</span>
@@ -116,7 +116,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             )}
              {(role === 'admin' || role === 'owner') && (
                 <SidebarMenuItem>
-                  <Link href="/admin" legacyBehavior passHref>
+                  <Link href="/admin">
                     <SidebarMenuButton isActive={isActive('/admin')} tooltip="Admin Panel">
                       <ShieldCheck />
                       <span>Admin Panel</span>
@@ -126,7 +126,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             )}
             {role === 'owner' && (
                 <SidebarMenuItem>
-                  <Link href="/owner" legacyBehavior passHref>
+                  <Link href="/owner">
                     <SidebarMenuButton isActive={isActive('/owner')} tooltip="Owner Controls">
                       <UserCog />
                       <span>Owner Controls</span>
@@ -169,7 +169,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/auth" legacyBehavior passHref>
+            <Link href="/auth">
               <Button variant="outline" className="w-full">
                 <LogIn className="mr-2 h-4 w-4"/>
                 Login / Register
