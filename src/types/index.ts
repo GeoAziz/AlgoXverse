@@ -11,6 +11,9 @@ export interface AppUser {
     createdAt: Timestamp;
 }
 
+export type SerializableAppUser = Omit<AppUser, 'createdAt'> & { createdAt: string };
+
+
 export interface ChartEvent {
     day: number;
     type: 'BUY' | 'SELL';
@@ -31,3 +34,5 @@ export interface Strategy {
         email: string | null;
     }
 }
+
+export type SerializableStrategy = Omit<Strategy, 'createdAt'> & { createdAt: string };

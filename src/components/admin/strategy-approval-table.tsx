@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import type { Strategy } from "@/types";
+import type { SerializableStrategy } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { CheckCircle, XCircle } from "lucide-react";
 import { updateStrategyApproval } from '@/app/admin/actions';
 import { useToast } from '@/hooks/use-toast';
 
-export function StrategyApprovalTable({ strategies: initialStrategies }: { strategies: Strategy[] }) {
+export function StrategyApprovalTable({ strategies: initialStrategies }: { strategies: SerializableStrategy[] }) {
     const [strategies, setStrategies] = useState(initialStrategies);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -56,7 +56,7 @@ export function StrategyApprovalTable({ strategies: initialStrategies }: { strat
                             <div>{strategy.user?.displayName}</div>
                             <div className="text-xs text-muted-foreground">{strategy.user?.email}</div>
                         </TableCell>
-                        <TableCell>{formatDistanceToNow(strategy.createdAt.toDate(), { addSuffix: true })}</TableCell>
+                        <TableCell>{formatDistanceToNow(new Date(strategy.createdAt), { addSuffix: true })}</TableCell>
                         <TableCell className="text-right space-x-2">
                              <Button 
                                 size="sm" 

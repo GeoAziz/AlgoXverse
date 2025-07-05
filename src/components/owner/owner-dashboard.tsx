@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { UserManagementTable } from "@/components/admin/user-management-table";
 import { Users, Bot, PlayCircle, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import type { AppUser } from "@/types";
+import type { SerializableAppUser } from "@/types";
 
 type Stats = {
     totalUsers: number;
@@ -28,7 +28,7 @@ function StatCard({ title, value, icon: Icon, description }: { title: string, va
     )
 }
 
-export function OwnerDashboard({ stats, users }: { stats: Stats, users: AppUser[] }) {
+export function OwnerDashboard({ stats, users }: { stats: Stats, users: SerializableAppUser[] }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}

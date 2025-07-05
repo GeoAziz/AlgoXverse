@@ -1,12 +1,18 @@
 'use server';
 
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import type { AppUser, Strategy, UserRole } from '@/types';
+import type { AppUser, SerializableAppUser, SerializableStrategy, Strategy, UserRole } from '@/types';
 import { revalidatePath } from 'next/cache';
 
-export async function getAllUsers(): Promise<AppUser[]> {
+export async function getAllUsers(): Promise<SerializableAppUser[]> {
     const usersSnapshot = await adminDb.collection('users').orderBy('createdAt', 'desc').get();
-    return usersSnapshot.docs.map(doc => doc.data() as AppUser);
+    return usersSnapshot.docs.map(doc => {
+        const user = doc.data() as AppUser;
+        return {
+            ...user,
+            createdAt: user.createdAt.toDate().toISOString(),
+        };
+    });
 }
 
 export async function updateUserRole(uid: string, role: UserRole) {
@@ -19,9 +25,15 @@ export async function updateUserRole(uid: string, role: UserRole) {
     return { success: true };
 }
 
-export async function getStrategiesForApproval(): Promise<Strategy[]> {
+export async function getStrategiesForApproval(): Promise<SerializableStrategy[]> {
      const snapshot = await adminDb.collection('strategies').where('approvalStatus', '==', 'pending').orderBy('createdAt', 'desc').get();
-     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Strategy));
+     return snapshot.docs.map(doc => {
+        const strategy = { id: doc.id, ...doc.data() } as Strategy;
+        return {
+            ...strategy,
+            createdAt: strategy.createdAt.toDate().toISOString(),
+        }
+     });
 }
 
 export async function updateStrategyApproval(strategyId: string, status: 'approved' | 'rejected') {

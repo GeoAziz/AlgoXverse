@@ -6,9 +6,9 @@ import { UserManagementTable } from "@/components/admin/user-management-table";
 import { StrategyApprovalTable } from "@/components/admin/strategy-approval-table";
 import { ShieldCheck, Users } from "lucide-react";
 import { motion } from "framer-motion";
-import type { AppUser, Strategy } from "@/types";
+import type { SerializableAppUser, SerializableStrategy } from "@/types";
 
-export function AdminDashboard({ strategies, users }: { strategies: Strategy[], users: AppUser[] }) {
+export function AdminDashboard({ strategies, users }: { strategies: SerializableStrategy[], users: SerializableAppUser[] }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import type { AppUser, UserRole } from "@/types";
+import type { SerializableAppUser, UserRole } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { useAuth } from '@/context/auth-context';
 import { updateUserRole } from '@/app/admin/actions';
 import { useToast } from '@/hooks/use-toast';
 
-export function UserManagementTable({ users }: { users: AppUser[] }) {
+export function UserManagementTable({ users }: { users: SerializableAppUser[] }) {
     const { user: currentUser } = useAuth();
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -57,7 +57,7 @@ export function UserManagementTable({ users }: { users: AppUser[] }) {
                                 {user.role}
                             </Badge>
                         </TableCell>
-                        <TableCell>{format(user.createdAt.toDate(), 'PPP')}</TableCell>
+                        <TableCell>{format(new Date(user.createdAt), 'PPP')}</TableCell>
                         <TableCell className="text-right">
                            {user.role !== 'owner' && user.uid !== currentUser?.uid ? (
                              <Select 
