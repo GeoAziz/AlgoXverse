@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoveRight, Bot, PlusCircle, Activity, Play, Square } from "lucide-react";
+import { MoveRight, Bot, PlusCircle, Activity, Play, Square, Info } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from '@/context/auth-context';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -16,20 +16,31 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { updateStrategyStatus } from './advisor/actions';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 
 const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
     const [isActive, setIsActive] = useState(strategy.status === 'running');
+    const isApproved = strategy.approvalStatus === 'approved';
 
     const handleStatusChange = (newStatus: boolean) => {
+        if (!isApproved) {
+            toast({
+                variant: 'destructive',
+                title: 'Approval Required',
+                description: 'This strategy must be approved by an admin before it can be run.',
+            });
+            return;
+        }
+
         setIsActive(newStatus);
         startTransition(async () => {
             const status = newStatus ? 'running' : 'stopped';
             const result = await updateStrategyStatus(strategy.id, status);
             if (!result.success) {
-                // Revert optimistic update on failure
                 setIsActive(!newStatus);
                 toast({
                     variant: 'destructive',
@@ -45,17 +56,40 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
         });
     };
 
+    const getApprovalBadgeVariant = () => {
+        switch (strategy.approvalStatus) {
+            case 'approved': return 'default';
+            case 'pending': return 'secondary';
+            case 'rejected': return 'destructive';
+            default: return 'secondary';
+        }
+    }
+    
+    const getApprovalBadgeClass = () => {
+        switch (strategy.approvalStatus) {
+            case 'approved': return 'bg-green-500/20 text-green-300 border-green-500/30';
+            case 'pending': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+            case 'rejected': return 'bg-red-500/20 text-red-400 border-red-500/30';
+            default: return '';
+        }
+    }
+
     return (
          <Card className="bg-background/50 hover:border-accent/50 transition-colors flex flex-col">
             <CardHeader>
-                <CardTitle className="font-headline text-xl truncate">{strategy.strategyName || "Unnamed Strategy"}</CardTitle>
+                <div className="flex justify-between items-start">
+                    <CardTitle className="font-headline text-xl truncate pr-2">{strategy.strategyName || "Unnamed Strategy"}</CardTitle>
+                    <Badge variant={getApprovalBadgeVariant()} className={cn("text-xs", getApprovalBadgeClass())}>
+                        {strategy.approvalStatus}
+                    </Badge>
+                </div>
                 <CardDescription>
                     Analyzed {formatDistanceToNow(strategy.createdAt.toDate(), { addSuffix: true })}
                 </CardDescription>
             </CardHeader>
             <CardContent className="mt-auto">
-                <div className="flex justify-between items-center">
-                    <Badge variant={isActive ? 'default' : 'secondary'} className={isActive ? 'bg-green-500/20 text-green-300 border-green-500/30' : ''}>
+                 <div className="flex justify-between items-center">
+                    <Badge variant={isActive ? 'default' : 'secondary'} className={cn(isActive ? 'bg-green-500/20 text-green-300 border-green-500/30' : '', 'transition-colors')}>
                         {isActive ? 'Running' : 'Stopped'}
                     </Badge>
                      <div className="flex items-center space-x-2">
@@ -63,13 +97,25 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
                             id={`status-${strategy.id}`}
                             checked={isActive}
                             onCheckedChange={handleStatusChange}
-                            disabled={isPending}
+                            disabled={isPending || !isApproved}
                             aria-label="Toggle strategy status"
                         />
-                        <Label htmlFor={`status-${strategy.id}`} className="flex items-center gap-1 cursor-pointer">
+                        <Label htmlFor={`status-${strategy.id}`} className={cn("flex items-center gap-1", !isApproved ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer")}>
                             {isActive ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                             <span>{isActive ? 'Stop' : 'Start'}</span>
                         </Label>
+                         {!isApproved && (
+                             <TooltipProvider>
+                                 <Tooltip>
+                                     <TooltipTrigger>
+                                         <Info className="w-4 h-4 text-muted-foreground" />
+                                     </TooltipTrigger>
+                                     <TooltipContent>
+                                         <p>Strategy must be approved to start.</p>
+                                     </TooltipContent>
+                                 </Tooltip>
+                             </TooltipProvider>
+                         )}
                     </div>
                 </div>
             </CardContent>
@@ -94,7 +140,7 @@ const StrategyCardSkeleton = () => (
 );
 
 export default function TraderDashboard() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -127,7 +173,9 @@ export default function TraderDashboard() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Trader Dashboard</h1>
+        <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">
+          {role === 'owner' ? "Owner's Dashboard" : role === 'admin' ? "Admin's Dashboard" : "Trader Dashboard"}
+        </h1>
         <p className="text-muted-foreground max-w-2xl">
           Welcome, Navigator. Manage your active strategies or create a new one with the AI Advisor.
         </p>
@@ -149,7 +197,7 @@ export default function TraderDashboard() {
                 My Strategies
             </CardTitle>
             <CardDescription>
-                Here are the strategies you have analyzed. Use the toggle to start or stop your bots.
+                Here are the strategies you have analyzed. Approved strategies can be started or stopped.
             </CardDescription>
         </CardHeader>
         <CardContent>

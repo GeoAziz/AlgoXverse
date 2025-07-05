@@ -4,16 +4,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { Skeleton } from '@/components/ui/skeleton';
+import type { UserRole } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  role: UserRole | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  role: null,
 });
 
 const FullScreenLoader = () => (
@@ -29,10 +31,18 @@ const FullScreenLoader = () => (
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user);
+        const token = await user.getIdTokenResult(true); // Force refresh to get custom claims
+        setRole((token.claims.role as UserRole) || 'trader');
+      } else {
+        setUser(null);
+        setRole(null);
+      }
       setLoading(false);
     });
 
@@ -40,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, role }}>
       {loading ? <FullScreenLoader /> : children}
     </AuthContext.Provider>
   );

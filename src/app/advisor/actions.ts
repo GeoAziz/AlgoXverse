@@ -46,7 +46,6 @@ export async function saveStrategyAnalysis(
   }
 
   try {
-    // Try to parse strategyCode as JSON to get a name
     let strategyName = "Unnamed Strategy";
     try {
       const parsedCode = JSON.parse(strategyCode);
@@ -57,17 +56,26 @@ export async function saveStrategyAnalysis(
       // It's not JSON, so we'll use the default name.
     }
 
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    const userData = userDoc.exists ? userDoc.data() : null;
+
     const strategyData = {
       userId,
       strategyName,
       strategyCode,
       analysis,
       status: 'stopped',
+      approvalStatus: 'pending',
       createdAt: FieldValue.serverTimestamp(),
+      user: {
+        displayName: userData?.displayName ?? 'Trader',
+        email: userData?.email ?? 'N/A',
+      }
     };
 
     const docRef = await adminDb.collection('strategies').add(strategyData);
     revalidatePath('/');
+    revalidatePath('/admin');
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error saving strategy to Firestore:", error);

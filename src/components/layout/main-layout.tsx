@@ -14,7 +14,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, BrainCircuit, Settings, LogIn, LogOut } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, Settings, LogIn, LogOut, ShieldCheck, UserCog } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,23 +27,38 @@ import { auth } from '@/lib/firebase/client';
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isActive = (path: string) => pathname === path;
-  const { user, loading } = useAuth();
+  const isActive = (path: string) => pathname.startsWith(path);
+  const { user, loading, role } = useAuth();
   
   const protectedRoutes = ['/advisor', '/settings'];
+  const adminRoutes = ['/admin'];
+  const ownerRoutes = ['/owner'];
   const authRoutes = ['/auth'];
 
   React.useEffect(() => {
     if (loading) return;
 
-    if (!user && protectedRoutes.includes(pathname)) {
-      router.push('/auth');
-    }
-    if (user && authRoutes.includes(pathname)) {
-        router.push('/');
+    const isProtectedRoute = protectedRoutes.some(p => pathname.startsWith(p));
+    const isAdminRoute = adminRoutes.some(p => pathname.startsWith(p));
+    const isOwnerRoute = ownerRoutes.some(p => pathname.startsWith(p));
+    
+    if (!user) {
+        if (isProtectedRoute || isAdminRoute || isOwnerRoute) {
+            router.push('/auth');
+        }
+    } else {
+        if (authRoutes.includes(pathname)) {
+            router.push('/');
+        }
+        if (isAdminRoute && role !== 'admin' && role !== 'owner') {
+            router.push('/');
+        }
+        if (isOwnerRoute && role !== 'owner') {
+            router.push('/');
+        }
     }
 
-  }, [user, loading, pathname, router]);
+  }, [user, loading, role, pathname, router]);
 
 
   const handleLogout = async () => {
@@ -51,7 +66,8 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     router.push('/');
   };
 
-  if ((loading || !user) && protectedRoutes.includes(pathname)) {
+  const isManagementRoute = adminRoutes.includes(pathname) || ownerRoutes.includes(pathname);
+  if ((loading || !user) && (protectedRoutes.includes(pathname) || isManagementRoute)) {
     return null;
   }
   
@@ -69,7 +85,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/" legacyBehavior passHref>
-                <SidebarMenuButton isActive={isActive('/')} tooltip="Dashboard">
+                <SidebarMenuButton isActive={pathname === '/'} tooltip="Dashboard">
                   <LayoutDashboard />
                   <span>Dashboard</span>
                 </SidebarMenuButton>
@@ -95,6 +111,26 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
               </>
             )}
+             {(role === 'admin' || role === 'owner') && (
+                <SidebarMenuItem>
+                  <Link href="/admin" legacyBehavior passHref>
+                    <SidebarMenuButton isActive={isActive('/admin')} tooltip="Admin Panel">
+                      <ShieldCheck />
+                      <span>Admin Panel</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+            )}
+            {role === 'owner' && (
+                <SidebarMenuItem>
+                  <Link href="/owner" legacyBehavior passHref>
+                    <SidebarMenuButton isActive={isActive('/owner')} tooltip="Owner Controls">
+                      <UserCog />
+                      <span>Owner Controls</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -113,7 +149,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="right" align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>My Account ({role})</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>Profile</DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -140,7 +176,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="flex md:hidden" />
             <div className="flex-1">
               <h1 className="font-headline text-lg font-semibold capitalize">
-                {pathname.substring(1) || 'Dashboard'}
+                {pathname.substring(1).split('/')[0] || 'Dashboard'}
               </h1>
             </div>
           </header>
