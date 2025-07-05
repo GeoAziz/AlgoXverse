@@ -1,0 +1,82 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions to check user roles from Auth custom claims ---
+    function isOwner() {
+      return request.auth.token.role == 'owner';
+    }
+
+    function isAdmin() {
+      return request.auth.token.role == 'admin' || isOwner();
+    }
+    
+    function isTrader() {
+      return request.auth.token.role == 'trader';
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // --- Rules for the 'users' collection ---
+    match /users/{userId} {
+      // Admins/Owners can read any user document for management.
+      // A user can read their own document.
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      
+      // A user can create their own document during signup.
+      // The role is set securely by a backend action, so we just check for uid match.
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Admins/Owners can update roles.
+      // A user can update their own profile data (future-proofing).
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      
+      // Only the owner can delete a user account.
+      allow delete: if isOwner();
+    }
+
+    // --- Rules for the 'strategies' collection ---
+    match /strategies/{strategyId} {
+      // Admins/Owners can read any strategy.
+      // A trader can only read their own strategies.
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      // Any signed-in user can create a strategy for themselves.
+      // - The document's userId must match their own uid.
+      // - On creation, status must be 'stopped' and approval must be 'pending'.
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.status == 'stopped'
+                    && request.resource.data.approvalStatus == 'pending';
+      
+      // Update logic is split between Trader and Admin actions.
+      allow update: if 
+        // TRADER: Can update the run status ('running'/'stopped') of their own APPROVED strategy.
+        // They cannot change any other critical data.
+        (
+          isTrader() &&
+          resource.data.userId == request.auth.uid &&
+          resource.data.approvalStatus == 'approved' &&
+          request.resource.data.status != resource.data.status && // The 'status' field is the only one that should change.
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.strategyCode == resource.data.strategyCode &&
+          request.resource.data.approvalStatus == resource.data.approvalStatus
+        ) ||
+        // ADMIN/OWNER: Can update the approval status ('approved'/'rejected') of ANY strategy.
+        // They cannot change the run status during the approval action.
+        (
+          isAdmin() &&
+          request.resource.data.approvalStatus != resource.data.approvalStatus && // The 'approvalStatus' is the only thing changing.
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.status == resource.data.status
+        );
+
+      // Only the owner can delete a strategy document.
+      allow delete: if isOwner();
+    }
+  }
+}
