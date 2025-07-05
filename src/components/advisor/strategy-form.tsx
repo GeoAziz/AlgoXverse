@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getAIAnalysis } from '@/app/advisor/actions';
+import { getAIAnalysis, saveStrategyAnalysis } from '@/app/advisor/actions';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { AIStrategyAdvisorOutput } from '@/ai/flows/ai-strategy-advisor';
 import { useToast } from '@/hooks/use-toast';
 import { Wand2 } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 const formSchema = z.object({
   strategyCode: z.string().min(10, {
@@ -18,7 +19,6 @@ const formSchema = z.object({
   }),
 });
 
-// Default strategy code to help users get started
 const defaultStrategy = `{
   "strategyName": "Simple MA Cross",
   "version": "1.0",
@@ -50,6 +50,8 @@ type StrategyFormProps = {
 
 export default function StrategyForm({ onAnalysisComplete, setIsLoading }: StrategyFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,6 +60,15 @@ export default function StrategyForm({ onAnalysisComplete, setIsLoading }: Strat
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Required',
+            description: 'You must be logged in to analyze a strategy.',
+        });
+        return;
+    }
+
     setIsLoading(true);
     onAnalysisComplete(null, null);
 
@@ -65,6 +76,12 @@ export default function StrategyForm({ onAnalysisComplete, setIsLoading }: Strat
       const result = await getAIAnalysis(values.strategyCode);
       if (result) {
         onAnalysisComplete(result, null);
+        // After getting the result, save it to Firestore
+        await saveStrategyAnalysis(user.uid, values.strategyCode, result);
+        toast({
+            title: 'Analysis Saved',
+            description: 'Your strategy analysis has been saved to your dashboard.',
+        });
       } else {
         throw new Error('AI analysis returned no result.');
       }
@@ -86,7 +103,7 @@ export default function StrategyForm({ onAnalysisComplete, setIsLoading }: Strat
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Strategy Input</CardTitle>
         <CardDescription>
-          Paste your strategy logic below. You can use JSON or any code format.
+          Paste your strategy logic below. You can use JSON or any code format. The analysis will be saved to your dashboard.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -109,9 +126,9 @@ export default function StrategyForm({ onAnalysisComplete, setIsLoading }: Strat
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={form.formState.isSubmitting} className="group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--accent))]">
+            <Button type="submit" disabled={form.formState.isSubmitting || !user} className="group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--accent))]">
               <Wand2 className="w-4 h-4 mr-2 transition-transform group-hover:-rotate-12" />
-              Analyze Strategy
+              Analyze and Save Strategy
             </Button>
           </form>
         </Form>
