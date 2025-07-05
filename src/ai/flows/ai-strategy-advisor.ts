@@ -24,6 +24,25 @@ const AIStrategyAdvisorInputSchema = z.object({
 
 export type AIStrategyAdvisorInput = z.infer<typeof AIStrategyAdvisorInputSchema>;
 
+const TradeLogEntrySchema = z.object({
+  id: z.number().describe('A unique ID for the trade.'),
+  type: z.enum(['BUY', 'SELL']).describe('The type of trade.'),
+  asset: z.string().describe('The asset traded, e.g., BTC/USD.'),
+  price: z.number().describe('The execution price.'),
+  size: z.number().describe('The size of the trade.'),
+  pnl: z.number().describe('The profit or loss from this trade, in USD.'),
+  status: z.enum(['Open', 'Closed']).describe('The status of the trade.'),
+});
+
+const BacktestMetricsSchema = z.object({
+  totalPnl: z.number().describe('Total profit or loss in USD.'),
+  winRate: z.number().describe('Percentage of winning trades (0 to 100).'),
+  profitFactor: z.number().describe('Ratio of gross profit to gross loss. Greater than 1 is profitable.'),
+  totalTrades: z.number().describe('Total number of trades executed.'),
+  pnlData: z.array(z.object({ day: z.number(), pnl: z.number() })).describe('An array of 15-20 data points for a PnL chart over time (e.g., by day).'),
+  tradeLog: z.array(TradeLogEntrySchema).max(5).describe('A log of the 5 most significant simulated trades from the backtest.'),
+});
+
 const AIStrategyAdvisorOutputSchema = z.object({
   suggestions: z
     .string()
@@ -35,7 +54,9 @@ const AIStrategyAdvisorOutputSchema = z.object({
     .describe(
       'The rationale behind the suggested optimizations, explaining why they may improve performance.'
     ),
+  backtest: BacktestMetricsSchema.describe('Simulated backtest performance metrics based on the provided historical data.'),
 });
+
 
 export type AIStrategyAdvisorOutput = z.infer<typeof AIStrategyAdvisorOutputSchema>;
 
@@ -55,9 +76,11 @@ Trading Strategy Code:
 Historical Market Data:
 {{historicalData}}
 
-Based on your analysis, provide specific suggestions for optimizing the trading strategy. Include the rationale behind each suggestion, explaining why it may improve performance. The suggestions should be actionable and clearly describe what changes the trader should make to their strategy. Focus on aspects like parameter adjustments, risk management techniques, and alternative trading rules.
+First, provide specific suggestions for optimizing the trading strategy. Include the rationale behind each suggestion, explaining why it may improve performance. Focus on aspects like parameter adjustments, risk management techniques, and alternative trading rules.
 
-Output your suggestions in a clear and concise manner.
+Second, run a plausible simulation of a backtest based on the strategy and historical data. Generate realistic performance metrics for the 'backtest' output field, including PnL, win rate, profit factor, total trades, PnL data for a chart, and a log of a few significant trades. The simulation should appear credible.
+
+Output your analysis in the required structured format.
 `,
 });
 

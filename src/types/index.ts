@@ -7,5 +7,6 @@ export interface Strategy {
     strategyName?: string;
     strategyCode: string;
     analysis: AIStrategyAdvisorOutput;
+    status: 'running' | 'stopped';
     createdAt: Timestamp;
 }

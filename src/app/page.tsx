@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoveRight, Bot, PlusCircle, Activity } from "lucide-react";
+import { MoveRight, Bot, PlusCircle, Activity, Play, Square } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from '@/context/auth-context';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -12,6 +12,71 @@ import type { Strategy } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { updateStrategyStatus } from './advisor/actions';
+import { useToast } from '@/hooks/use-toast';
+
+
+const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+    const [isActive, setIsActive] = useState(strategy.status === 'running');
+
+    const handleStatusChange = (newStatus: boolean) => {
+        setIsActive(newStatus);
+        startTransition(async () => {
+            const status = newStatus ? 'running' : 'stopped';
+            const result = await updateStrategyStatus(strategy.id, status);
+            if (!result.success) {
+                // Revert optimistic update on failure
+                setIsActive(!newStatus);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Failed to update strategy status.',
+                });
+            } else {
+                 toast({
+                    title: `Strategy ${status === 'running' ? 'Started' : 'Stopped'}`,
+                    description: `${strategy.strategyName || "Unnamed Strategy"} is now ${status}.`,
+                });
+            }
+        });
+    };
+
+    return (
+         <Card className="bg-background/50 hover:border-accent/50 transition-colors flex flex-col">
+            <CardHeader>
+                <CardTitle className="font-headline text-xl truncate">{strategy.strategyName || "Unnamed Strategy"}</CardTitle>
+                <CardDescription>
+                    Analyzed {formatDistanceToNow(strategy.createdAt.toDate(), { addSuffix: true })}
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-auto">
+                <div className="flex justify-between items-center">
+                    <Badge variant={isActive ? 'default' : 'secondary'} className={isActive ? 'bg-green-500/20 text-green-300 border-green-500/30' : ''}>
+                        {isActive ? 'Running' : 'Stopped'}
+                    </Badge>
+                     <div className="flex items-center space-x-2">
+                        <Switch
+                            id={`status-${strategy.id}`}
+                            checked={isActive}
+                            onCheckedChange={handleStatusChange}
+                            disabled={isPending}
+                            aria-label="Toggle strategy status"
+                        />
+                        <Label htmlFor={`status-${strategy.id}`} className="flex items-center gap-1 cursor-pointer">
+                            {isActive ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                            <span>{isActive ? 'Stop' : 'Start'}</span>
+                        </Label>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 const StrategyCardSkeleton = () => (
   <Card className="bg-card/50 backdrop-blur-sm">
@@ -22,7 +87,7 @@ const StrategyCardSkeleton = () => (
     <CardContent>
       <div className="flex justify-between items-center">
         <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-10 w-24" />
       </div>
     </CardContent>
   </Card>
@@ -56,7 +121,7 @@ export default function TraderDashboard() {
   }, [user]);
 
   if (!user) {
-     return <GuestWelcome />;
+     return <GuestDashboard />;
   }
   
   return (
@@ -84,7 +149,7 @@ export default function TraderDashboard() {
                 My Strategies
             </CardTitle>
             <CardDescription>
-                Here are the strategies you have analyzed.
+                Here are the strategies you have analyzed. Use the toggle to start or stop your bots.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -97,19 +162,7 @@ export default function TraderDashboard() {
             ) : strategies.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {strategies.map(strategy => (
-                        <Card key={strategy.id} className="bg-background/50 hover:border-accent/50 transition-colors">
-                            <CardHeader>
-                                <CardTitle className="font-headline text-xl truncate">{strategy.strategyName || "Unnamed Strategy"}</CardTitle>
-                                <CardDescription>
-                                    Analyzed {formatDistanceToNow(strategy.createdAt.toDate(), { addSuffix: true })}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex justify-between items-center">
-                                    <Badge variant="outline">View Details</Badge>
-                                </div>
-                            </CardContent>
-                        </Card>
+                       <StrategyCard key={strategy.id} strategy={strategy} />
                     ))}
                 </div>
             ) : (
@@ -135,32 +188,52 @@ export default function TraderDashboard() {
   );
 }
 
-const GuestWelcome = () => (
-    <div className="flex flex-col gap-8 items-center justify-center h-full text-center">
-      <div className="space-y-2">
-        <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Welcome, Guest Navigator</h1>
-        <p className="text-muted-foreground max-w-xl">
-          Your portal to the AlgoXverse. Sign in to analyze, optimize, and deploy with the power of AI.
+const GuestDashboard = () => (
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Guest Console</h1>
+        <p className="text-muted-foreground max-w-2xl">
+          You are viewing a live demo of the AlgoXverse. Sign in to unlock your personal command center.
         </p>
       </div>
-
-       <Card className="max-w-md bg-card/50 border-primary/20 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-headline text-2xl">
-                <span>Access Your Command Console</span>
+      
+       <Card className="bg-card/50 backdrop-blur-sm border-primary/20 relative overflow-hidden">
+        <CardHeader>
+            <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                <Activity className="text-primary"/>
+                Demo Strategies
             </CardTitle>
             <CardDescription>
-              Log in or create an account to access your personal Trader Dashboard and the AI Strategy Advisor.
+                This is a preview of a real trader's dashboard.
             </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/auth">
-              <Button className="w-full group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--primary))]">
-                Login / Register
-                <MoveRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        </CardHeader>
+        <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StrategyCardSkeleton />
+                <StrategyCardSkeleton />
+                <StrategyCardSkeleton />
+            </div>
+        </CardContent>
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent flex items-center justify-center flex-col gap-4 p-4">
+             <Card className="max-w-md bg-card/80 border-primary/50 backdrop-blur-lg animate-in fade-in-50 duration-500">
+                <CardHeader className="items-center text-center">
+                    <CardTitle className="flex items-center gap-2 font-headline text-2xl">
+                        <span>Activate Your TradeDesk</span>
+                    </CardTitle>
+                    <CardDescription>
+                    Register now to upload, backtest, and deploy your own AI-powered strategies.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/auth">
+                    <Button className="w-full group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--primary))]">
+                        Login / Register
+                        <MoveRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                    </Link>
+                </CardContent>
+            </Card>
+        </div>
+      </Card>
     </div>
 );

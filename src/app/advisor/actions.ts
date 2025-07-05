@@ -4,6 +4,7 @@ import { analyzeStrategy, AIStrategyAdvisorInput, AIStrategyAdvisorOutput } from
 import { z } from 'zod';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { revalidatePath } from 'next/cache';
 
 const inputSchema = z.string().min(10);
 
@@ -61,13 +62,32 @@ export async function saveStrategyAnalysis(
       strategyName,
       strategyCode,
       analysis,
+      status: 'stopped',
       createdAt: FieldValue.serverTimestamp(),
     };
 
     const docRef = await adminDb.collection('strategies').add(strategyData);
+    revalidatePath('/');
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error saving strategy to Firestore:", error);
     throw new Error("Could not save strategy analysis.");
   }
+}
+
+
+export async function updateStrategyStatus(strategyId: string, status: 'running' | 'stopped') {
+    if (!strategyId) {
+        throw new Error("Strategy ID is required.");
+    }
+
+    try {
+        const strategyRef = adminDb.collection('strategies').doc(strategyId);
+        await strategyRef.update({ status });
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating strategy status:", error);
+        throw new Error("Could not update strategy status.");
+    }
 }
