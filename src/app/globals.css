@@ -87,4 +87,10 @@
     @apply content-[''] absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-black/20 via-transparent to-black/20 pointer-events-none;
     animation: scanline 10s linear infinite;
   }
+  .bg-grid-pattern {
+    background-image:
+        linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
+        linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, hsl(var(--background)) 1px);
+    background-size: 40px 40px;
+  }
 }
