@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,6 +25,11 @@ export function SplashScreen() {
   const { user, loading } = useAuth();
   
   useEffect(() => {
+    // This effect ensures we only show the splash on the initial load for a session.
+    const hasVisited = sessionStorage.getItem('algoXverseVisited');
+    if (hasVisited) {
+        setShowSplash(false);
+    }
     setIsMounted(true);
   }, []);
 
@@ -36,24 +42,34 @@ export function SplashScreen() {
   }, [currentLog, showSplash]);
 
   useEffect(() => {
-    if (!loading && user) {
-        setShowSplash(false);
+    if (!loading && showSplash && currentLog >= bootLogs.length) {
+        // Once animations are done, if user is not logged in, they can choose.
+        // If user is logged in, we'll hide the splash.
+        if (user) {
+            setTimeout(() => {
+                sessionStorage.setItem('algoXverseVisited', 'true');
+                setShowSplash(false);
+            }, 500); // Give a moment to read the final log
+        }
     }
-  }, [loading, user])
+  }, [loading, user, showSplash, currentLog])
 
   const handleEnterConsole = () => {
+    sessionStorage.setItem('algoXverseVisited', 'true');
+    setShowSplash(false); // Hide splash and let main layout redirect to /auth
     router.push('/auth');
   };
   
   const handleEnterDemo = () => {
-    setShowSplash(false);
+    sessionStorage.setItem('algoXverseVisited', 'true');
+    setShowSplash(false); // Hide splash, main layout will show GuestDashboard
   };
 
   if (!isMounted || (!loading && !showSplash) ) {
     return null;
   }
   
-  if (!loading && user) {
+  if (!loading && user && !showSplash) {
      return null;
   }
 
@@ -92,7 +108,7 @@ export function SplashScreen() {
             </div>
             
             <AnimatePresence>
-              {currentLog >= bootLogs.length && (
+              {(currentLog >= bootLogs.length && !user) && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
