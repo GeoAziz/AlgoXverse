@@ -56,13 +56,14 @@ export function SplashScreen() {
 
   const handleEnterConsole = () => {
     sessionStorage.setItem('algoXverseVisited', 'true');
-    setShowSplash(false); // Hide splash and let main layout redirect to /auth
+    setShowSplash(false);
     router.push('/auth');
   };
   
   const handleEnterDemo = () => {
     sessionStorage.setItem('algoXverseVisited', 'true');
-    setShowSplash(false); // Hide splash, main layout will show GuestDashboard
+    setShowSplash(false);
+    router.push('/');
   };
 
   if (!isMounted || (!loading && !showSplash) ) {
@@ -131,3 +132,5 @@ export function SplashScreen() {
     </AnimatePresence>
   );
 }
+
+    
