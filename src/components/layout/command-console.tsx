@@ -1,3 +1,4 @@
+
 // src/components/layout/command-console.tsx
 'use client';
 
@@ -6,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, X, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppSound } from '@/hooks/use-sound';
+import { useAuth } from '@/context/auth-context';
 
 type HistoryItem = {
     id: number;
@@ -49,6 +51,7 @@ export const CommandConsole = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const { playClickSound } = useAppSound();
+    const { user } = useAuth();
 
     useEffect(() => {
         if (isOpen) {
@@ -61,6 +64,17 @@ export const CommandConsole = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
     }, [history]);
 
     const handleCommand = (command: string) => {
+        if (!user) {
+             setHistory(prev => [...prev, { 
+                id: Date.now(), 
+                command, 
+                output: <CommandResponse>
+                    <span className="text-red-400">Demo mode: command console is locked. Please login to use commands.</span>
+                </CommandResponse> 
+            }]);
+            return;
+        }
+
         const [cmd, ...args] = command.trim().split(' ');
         let output: React.ReactNode;
         if (cmd === 'clear') {
@@ -104,7 +118,7 @@ export const CommandConsole = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
                             </button>
                         </header>
                         <div ref={scrollRef} className="p-4 h-[calc(100%-80px)] overflow-y-auto">
-                            <div className="text-green-400">Welcome to AlgoXverse Mission Control. Type 'help' for commands.</div>
+                            <div className="text-green-400">Welcome to AlgoXverse Mission Control. {user ? "Type 'help' for commands." : "Login to enable commands."}</div>
                             <div className="h-4"></div>
                             {history.map(item => (
                                 <div key={item.id} className="mb-2">

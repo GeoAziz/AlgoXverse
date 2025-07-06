@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -153,12 +154,12 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-         {user && (
+         
             <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => setConsoleOpen(true)}>
                 <TerminalSquare className="w-5 h-5 text-accent" />
                 <span className="text-muted-foreground">Command Console</span>
             </Button>
-          )}
+          
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
