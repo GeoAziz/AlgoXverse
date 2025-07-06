@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import type { UserRole } from '@/types';
@@ -10,12 +10,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   role: UserRole | null;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   role: null,
+  refreshUser: async () => {},
 });
 
 const FullScreenLoader = () => (
@@ -32,6 +34,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
+
+  const refreshUser = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+        await currentUser.reload();
+        const freshUser = auth.currentUser;
+        setUser(freshUser);
+        if (freshUser) {
+            const token = await freshUser.getIdTokenResult(true);
+            setRole((token.claims.role as UserRole) || 'trader');
+        }
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -50,7 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, role }}>
+    <AuthContext.Provider value={{ user, loading, role, refreshUser }}>
       {loading ? <FullScreenLoader /> : children}
     </AuthContext.Provider>
   );

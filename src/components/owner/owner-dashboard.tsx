@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagementTable } from "@/components/admin/user-management-table";
-import { Users, Bot, PlayCircle, Clock } from "lucide-react";
+import { Users, Bot, PlayCircle, Clock, ShieldCheck, PieChart, AlertTriangle, Cloud } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SerializableAppUser } from "@/types";
 
@@ -15,7 +16,7 @@ type Stats = {
 
 function StatCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description: string }) {
     return (
-        <Card className="bg-card/50">
+        <Card className="bg-card/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{title}</CardTitle>
                 <Icon className="h-4 w-4 text-muted-foreground" />
@@ -49,6 +50,13 @@ export function OwnerDashboard({ stats, users }: { stats: Stats, users: Serializ
                 <StatCard title="Running Bots" value={stats.runningStrategies} icon={PlayCircle} description="Strategies currently active."/>
                 <StatCard title="Pending Approval" value={stats.pendingStrategies} icon={Clock} description="Strategies awaiting review."/>
             </div>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Admin Accounts" value={users.filter(u => u.role === 'admin').length} icon={ShieldCheck} description="Delegated system moderators."/>
+                <StatCard title="Subscription Plans" value="2" icon={PieChart} description="Pro & Trial plans active."/>
+                <StatCard title="System Alerts" value="0" icon={AlertTriangle} description="Critical errors or flags."/>
+                <StatCard title="Cloud Services" value="Healthy" icon={Cloud} description="Firebase & Vercel status."/>
+            </div>
+
 
             <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
                 <CardHeader>

@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoveRight, Bot, PlusCircle, Activity, Play, Square, Info } from "lucide-react";
+import { MoveRight, Bot, PlusCircle, Activity, Play, Square, Info, ShieldQuestion, BarChart, HardDrive } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from '@/context/auth-context';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -85,7 +86,7 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
                     </Badge>
                 </div>
                 <CardDescription>
-                    Analyzed {formatDistanceToNow(strategy.createdAt.toDate(), { addSuffix: true })}
+                    Analyzed {formatDistanceToNow(new Date(strategy.createdAt), { addSuffix: true })}
                 </CardDescription>
             </CardHeader>
             <CardContent className="mt-auto">
@@ -141,35 +142,54 @@ const StrategyCardSkeleton = () => (
 );
 
 export default function TraderDashboard() {
-  const { user, role } = useAuth();
+  const { user, loading } = useAuth();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [strategiesLoading, setStrategiesLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStrategies() {
       if (!user) {
-        setLoading(false);
+        setStrategiesLoading(false);
         return;
       }
       try {
-        setLoading(true);
+        setStrategiesLoading(true);
         const q = query(collection(db, 'strategies'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        const userStrategies = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Strategy));
+        const userStrategies = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt.toDate(),
+            } as Strategy;
+        });
         setStrategies(userStrategies);
       } catch (error) {
         console.error("Error fetching strategies:", error);
       } finally {
-        setLoading(false);
+        setStrategiesLoading(false);
       }
     }
 
-    fetchStrategies();
-  }, [user]);
+    if (!loading) {
+        fetchStrategies();
+    }
+  }, [user, loading]);
+
+  if (loading) {
+      return (
+        <div className="flex justify-center items-center h-full">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      );
+  }
 
   if (!user) {
      return <GuestDashboard />;
   }
+  
+  const { role } = useAuth();
   
   return (
     <motion.div 
@@ -180,7 +200,7 @@ export default function TraderDashboard() {
     >
       <div>
         <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">
-          {role === 'owner' ? "Owner's Dashboard" : role === 'admin' ? "Admin's Dashboard" : "Trader Dashboard"}
+          {role === 'owner' ? "Owner's Dashboard" : role === 'admin' ? "Admin's Dashboard" : "Trader's Command Console"}
         </h1>
         <p className="text-muted-foreground max-w-2xl">
           Welcome, Navigator. Manage your active strategies or create a new one with the AI Advisor.
@@ -207,7 +227,7 @@ export default function TraderDashboard() {
             </CardDescription>
         </CardHeader>
         <CardContent>
-            {loading ? (
+            {strategiesLoading ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <StrategyCardSkeleton />
                     <StrategyCardSkeleton />
@@ -242,6 +262,25 @@ export default function TraderDashboard() {
   );
 }
 
+const DemoStrategyCard = ({ name, status, icon: Icon, tag, tagColor }: { name: string, status: string, icon: React.ElementType, tag: string, tagColor: string }) => (
+    <Card className="bg-card/80 backdrop-blur-sm border-primary/20 p-4 flex flex-col justify-between">
+        <div>
+            <div className="flex justify-between items-center mb-2">
+                <h3 className="font-headline text-lg">{name}</h3>
+                <Badge className={cn(tagColor, "text-xs")}>{tag}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <Icon className="w-4 h-4 text-primary" />
+                {status}
+            </p>
+        </div>
+        <div className="w-full h-12 mt-4 bg-primary/10 rounded-md flex items-center justify-center">
+            <BarChart className="w-8 h-8 text-primary/40" />
+        </div>
+    </Card>
+);
+
+
 const GuestDashboard = () => (
     <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -250,9 +289,9 @@ const GuestDashboard = () => (
         className="flex flex-col gap-8"
     >
       <div>
-        <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Guest Console</h1>
+        <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Guest Console: Simulation Mode</h1>
         <p className="text-muted-foreground max-w-2xl">
-          You are viewing a live demo of the AlgoXverse. Sign in to unlock your personal command center.
+          You are viewing a live demo of the AlgoXverse. Register to unlock your personal command center.
         </p>
       </div>
       
@@ -260,20 +299,20 @@ const GuestDashboard = () => (
         <CardHeader>
             <CardTitle className="font-headline text-2xl flex items-center gap-2">
                 <Activity className="text-primary"/>
-                Demo Strategies
+                Demo Strategy Feed
             </CardTitle>
             <CardDescription>
-                This is a preview of a real trader's dashboard.
+                This is a read-only preview of a real trader's dashboard. All features are disabled.
             </CardDescription>
         </CardHeader>
         <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StrategyCardSkeleton />
-                <StrategyCardSkeleton />
-                <StrategyCardSkeleton />
+                <DemoStrategyCard name="Orion Scalper" status="Live | PnL: +3.45%" icon={Play} tag="Approved" tagColor="bg-green-500/20 text-green-300 border-green-500/30" />
+                <DemoStrategyCard name="Nebula Swing" status="Awaiting Approval" icon={ShieldQuestion} tag="Pending" tagColor="bg-yellow-500/20 text-yellow-300 border-yellow-500/30" />
+                <DemoStrategyCard name="Galaxy Grid" status="Backtest Complete" icon={HardDrive} tag="Approved" tagColor="bg-green-500/20 text-green-300 border-green-500/30" />
             </div>
         </CardContent>
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent flex items-center justify-center flex-col gap-4 p-4">
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent flex items-center justify-center flex-col gap-4 p-4 z-10">
              <Card className="max-w-md bg-card/80 border-primary/50 backdrop-blur-lg animate-in fade-in-50 duration-500">
                 <CardHeader className="items-center text-center">
                     <CardTitle className="flex items-center gap-2 font-headline text-2xl">

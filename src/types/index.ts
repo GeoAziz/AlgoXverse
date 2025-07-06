@@ -1,3 +1,4 @@
+
 import type { AIStrategyAdvisorOutput } from "@/ai/flows/ai-strategy-advisor";
 import type { Timestamp } from "firebase/firestore";
 
@@ -7,6 +8,7 @@ export interface AppUser {
     uid: string;
     email?: string | null;
     displayName?: string | null;
+    photoURL?: string | null;
     role: UserRole;
     createdAt: Timestamp;
 }
@@ -28,7 +30,7 @@ export interface Strategy {
     analysis: AIStrategyAdvisorOutput;
     status: 'running' | 'stopped';
     approvalStatus: 'pending' | 'approved' | 'rejected';
-    createdAt: Timestamp;
+    createdAt: Date;
     user?: {
         displayName: string | null;
         email: string | null;

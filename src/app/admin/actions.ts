@@ -1,3 +1,4 @@
+
 'use server';
 
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
@@ -36,6 +37,19 @@ export async function getStrategiesForApproval(): Promise<SerializableStrategy[]
      });
 }
 
+export async function getStrategyById(strategyId: string): Promise<SerializableStrategy | null> {
+    const doc = await adminDb.collection('strategies').doc(strategyId).get();
+    if (!doc.exists) {
+        return null;
+    }
+    const strategy = { id: doc.id, ...doc.data() } as Strategy;
+    return {
+        ...strategy,
+        createdAt: strategy.createdAt.toDate().toISOString(),
+    };
+}
+
+
 export async function updateStrategyApproval(strategyId: string, status: 'approved' | 'rejected') {
     await adminDb.collection('strategies').doc(strategyId).update({ approvalStatus: status });
     revalidatePath('/admin');
@@ -47,13 +61,15 @@ export async function updateStrategyApproval(strategyId: string, status: 'approv
 export async function getSystemStats() {
     const usersPromise = adminDb.collection('users').get();
     const strategiesPromise = adminDb.collection('strategies').get();
+    const approvedStrategiesPromise = adminDb.collection('strategies').where('approvalStatus', '==', 'approved').get();
 
-    const [usersSnapshot, strategiesSnapshot] = await Promise.all([usersPromise, strategiesPromise]);
+    const [usersSnapshot, strategiesSnapshot, approvedStrategiesSnapshot] = await Promise.all([usersPromise, strategiesPromise, approvedStrategiesPromise]);
 
     const totalUsers = usersSnapshot.size;
     const totalStrategies = strategiesSnapshot.size;
+    const totalAdmins = usersSnapshot.docs.filter(doc => doc.data().role === 'admin').length;
     
-    const runningStrategies = strategiesSnapshot.docs.filter(doc => doc.data().status === 'running').length;
+    const runningStrategies = approvedStrategiesSnapshot.docs.filter(doc => doc.data().status === 'running').length;
     const pendingStrategies = strategiesSnapshot.docs.filter(doc => doc.data().approvalStatus === 'pending').length;
 
     return {
@@ -61,5 +77,6 @@ export async function getSystemStats() {
         totalStrategies,
         runningStrategies,
         pendingStrategies,
+        totalAdmins
     };
 }
