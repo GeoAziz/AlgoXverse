@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoveRight, Bot, PlusCircle, Activity, Play, Square, Info, ShieldQuestion, BarChart, HardDrive } from "lucide-react";
+import { MoveRight, Bot, PlusCircle, Activity, Play, Square, Info, ShieldQuestion, BarChart, HardDrive, Lock } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from '@/context/auth-context';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -141,8 +141,8 @@ const StrategyCardSkeleton = () => (
   </Card>
 );
 
-export default function TraderDashboard() {
-  const { user, loading } = useAuth();
+const TraderDashboard = () => {
+  const { user, loading, role } = useAuth();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [strategiesLoading, setStrategiesLoading] = useState(true);
 
@@ -177,20 +177,6 @@ export default function TraderDashboard() {
     }
   }, [user, loading]);
 
-  if (loading) {
-      return (
-        <div className="flex justify-center items-center h-full">
-            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      );
-  }
-
-  if (!user) {
-     return <GuestDashboard />;
-  }
-  
-  const { role } = useAuth();
-  
   return (
     <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -280,7 +266,6 @@ const DemoStrategyCard = ({ name, status, icon: Icon, tag, tagColor }: { name: s
     </Card>
 );
 
-
 const GuestDashboard = () => (
     <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -312,10 +297,11 @@ const GuestDashboard = () => (
                 <DemoStrategyCard name="Galaxy Grid" status="Backtest Complete" icon={HardDrive} tag="Approved" tagColor="bg-green-500/20 text-green-300 border-green-500/30" />
             </div>
         </CardContent>
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent flex items-center justify-center flex-col gap-4 p-4 z-10">
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/90 to-background flex items-center justify-center flex-col gap-4 p-4 z-10">
              <Card className="max-w-md bg-card/80 border-primary/50 backdrop-blur-lg animate-in fade-in-50 duration-500">
                 <CardHeader className="items-center text-center">
                     <CardTitle className="flex items-center gap-2 font-headline text-2xl">
+                        <Lock className="w-6 h-6 text-primary" />
                         <span>Activate Your TradeDesk</span>
                     </CardTitle>
                     <CardDescription>
@@ -336,4 +322,20 @@ const GuestDashboard = () => (
     </motion.div>
 );
 
-    
+export default function HomePage() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+      return (
+        <div className="flex justify-center items-center h-full">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      );
+  }
+
+  if (!user) {
+     return <GuestDashboard />;
+  }
+  
+  return <TraderDashboard />;
+}

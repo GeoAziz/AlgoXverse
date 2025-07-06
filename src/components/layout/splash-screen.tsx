@@ -18,65 +18,57 @@ const bootLogs = [
 ];
 
 export function SplashScreen() {
-  const [isMounted, setIsMounted] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [currentLog, setCurrentLog] = useState(0);
   const router = useRouter();
   const { user, loading } = useAuth();
   
   useEffect(() => {
-    // This effect ensures we only show the splash on the initial load for a session.
     const hasVisited = sessionStorage.getItem('algoXverseVisited');
-    if (hasVisited) {
-        setShowSplash(false);
+    if (!hasVisited) {
+      setIsVisible(true);
     }
-    setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!showSplash || currentLog >= bootLogs.length) return;
+    if (!isVisible || loading || currentLog >= bootLogs.length) return;
+    
     const timeout = setTimeout(() => {
       setCurrentLog(currentLog + 1);
     }, 400 + Math.random() * 300);
+    
     return () => clearTimeout(timeout);
-  }, [currentLog, showSplash]);
+  }, [currentLog, isVisible, loading]);
 
   useEffect(() => {
-    if (!loading && showSplash && currentLog >= bootLogs.length) {
-        // Once animations are done, if user is not logged in, they can choose.
-        // If user is logged in, we'll hide the splash.
-        if (user) {
-            setTimeout(() => {
-                sessionStorage.setItem('algoXverseVisited', 'true');
-                setShowSplash(false);
-            }, 500); // Give a moment to read the final log
-        }
+    // Auto-hide for logged-in users after boot sequence
+    if (!loading && user && isVisible) {
+        setTimeout(() => {
+            sessionStorage.setItem('algoXverseVisited', 'true');
+            setIsVisible(false);
+        }, 500); // Wait a bit after final log message
     }
-  }, [loading, user, showSplash, currentLog])
+  }, [loading, user, isVisible]);
 
-  const handleEnterConsole = () => {
+  const handleChoice = (path: string) => {
     sessionStorage.setItem('algoXverseVisited', 'true');
-    setShowSplash(false);
-    router.push('/auth');
+    setIsVisible(false);
+    router.push(path);
   };
   
-  const handleEnterDemo = () => {
-    sessionStorage.setItem('algoXverseVisited', 'true');
-    setShowSplash(false);
-    router.push('/');
-  };
-
-  if (!isMounted || (!loading && !showSplash) ) {
+  // Render nothing if not visible
+  if (!isVisible && !loading) {
     return null;
   }
   
-  if (!loading && user && !showSplash) {
+  // While auth is loading, but we haven't decided to show the splash yet
+  if (loading && !isVisible) {
      return null;
   }
 
   return (
     <AnimatePresence>
-      {showSplash && (
+      {isVisible && (
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5 } }}
@@ -116,11 +108,11 @@ export function SplashScreen() {
                     transition={{ duration: 0.5, delay: 0.3 }}
                     className="flex flex-col sm:flex-row gap-4 mt-8"
                 >
-                    <Button onClick={handleEnterConsole} size="lg" className="group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--accent))]">
+                    <Button onClick={() => handleChoice('/auth')} size="lg" className="group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--accent))]">
                         Enter Command Console
                         <span className="ml-2 transition-transform group-hover:translate-x-1">→</span>
                     </Button>
-                    <Button onClick={handleEnterDemo} size="lg" variant="outline">
+                    <Button onClick={() => handleChoice('/')} size="lg" variant="outline">
                         Enter Demo Mode
                     </Button>
                 </motion.div>
@@ -132,5 +124,3 @@ export function SplashScreen() {
     </AnimatePresence>
   );
 }
-
-    
