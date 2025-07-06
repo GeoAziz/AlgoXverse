@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 
 const bootLogs = [
   "Initializing Zizo_Tuner...",
@@ -18,33 +20,41 @@ export function SplashScreen() {
   const [isMounted, setIsMounted] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [currentLog, setCurrentLog] = useState(0);
-
+  const router = useRouter();
+  const { user, loading } = useAuth();
+  
   useEffect(() => {
     setIsMounted(true);
-    const hasSeenSplash = sessionStorage.getItem('algoxverse.splash.seen');
-    if (hasSeenSplash) {
-      setShowSplash(false);
-    }
   }, []);
 
   useEffect(() => {
-    if (!showSplash) return;
-
-    if (currentLog < bootLogs.length) {
-      const timeout = setTimeout(() => {
-        setCurrentLog(currentLog + 1);
-      }, 400 + Math.random() * 300);
-      return () => clearTimeout(timeout);
-    }
+    if (!showSplash || currentLog >= bootLogs.length) return;
+    const timeout = setTimeout(() => {
+      setCurrentLog(currentLog + 1);
+    }, 400 + Math.random() * 300);
+    return () => clearTimeout(timeout);
   }, [currentLog, showSplash]);
 
-  const handleEnter = () => {
+  useEffect(() => {
+    if (!loading && user) {
+        setShowSplash(false);
+    }
+  }, [loading, user])
+
+  const handleEnterConsole = () => {
+    router.push('/auth');
+  };
+  
+  const handleEnterDemo = () => {
     setShowSplash(false);
-    sessionStorage.setItem('algoxverse.splash.seen', 'true');
   };
 
-  if (!isMounted || !showSplash) {
+  if (!isMounted || (!loading && !showSplash) ) {
     return null;
+  }
+  
+  if (!loading && user) {
+     return null;
   }
 
   return (
@@ -87,10 +97,14 @@ export function SplashScreen() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
+                    className="flex flex-col sm:flex-row gap-4 mt-8"
                 >
-                    <Button onClick={handleEnter} size="lg" className="group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--accent))] mt-8">
+                    <Button onClick={handleEnterConsole} size="lg" className="group transition-all hover:drop-shadow-[0_0_8px_hsl(var(--accent))]">
                         Enter Command Console
                         <span className="ml-2 transition-transform group-hover:translate-x-1">→</span>
+                    </Button>
+                    <Button onClick={handleEnterDemo} size="lg" variant="outline">
+                        Enter Demo Mode
                     </Button>
                 </motion.div>
               )}

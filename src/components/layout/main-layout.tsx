@@ -16,7 +16,6 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, BrainCircuit, Settings, LogIn, LogOut, ShieldCheck, UserCog, TerminalSquare } from 'lucide-react';
 import { Logo } from '@/components/icons';
-import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
@@ -25,6 +24,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CommandConsole } from './command-console';
+import Link from 'next/link';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -66,17 +66,33 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.push('/');
+    router.push('/auth');
   };
 
   const isManagementRoute = adminRoutes.includes(pathname) || ownerRoutes.includes(pathname);
-  if ((loading || !user) && (protectedRoutes.includes(pathname) || isManagementRoute)) {
+  if (loading && (protectedRoutes.includes(pathname) || isManagementRoute || authRoutes.includes(pathname))) {
     return null;
   }
   
+  // Do not render layout on auth page
+  if (authRoutes.includes(pathname)) {
+    return (
+       <AnimatePresence mode="wait">
+        <motion.div
+            key={pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            {children}
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
   return (
     <SidebarProvider>
-       {pathname !== '/auth' && (
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2">
@@ -169,7 +185,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/auth">
+             <Link href="/auth" className='w-full'>
               <Button variant="outline" className="w-full">
                 <LogIn className="mr-2 h-4 w-4"/>
                 Login / Register
@@ -178,9 +194,8 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           )}
         </SidebarFooter>
       </Sidebar>
-      )}
+      
       <SidebarInset>
-        {pathname !== '/auth' && (
           <header className="flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
             <SidebarTrigger className="flex md:hidden" />
             <div className="flex-1">
@@ -189,11 +204,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               </h1>
             </div>
           </header>
-        )}
         <AnimatePresence mode="wait" initial={false}>
           <motion.main
               key={pathname}
-              className={`flex-1 ${pathname !== '/auth' ? 'p-4 lg:p-6': ''}`}
+              initial={{ filter: 'blur(4px)', opacity: 0 }}
+              animate={{ filter: 'blur(0px)', opacity: 1 }}
+              exit={{ filter: 'blur(4px)', opacity: 0 }}
+              transition={{ duration: 0.4, type: 'tween' }}
+              className={`flex-1 p-4 lg:p-6`}
           >
               {children}
           </motion.main>

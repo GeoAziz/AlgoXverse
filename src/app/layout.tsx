@@ -4,6 +4,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 import { SplashScreen } from '@/components/layout/splash-screen';
+import { AnimatePresence } from 'framer-motion';
 
 export const metadata: Metadata = {
   title: 'AlgoXverse Navigator',
@@ -23,8 +24,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <SplashScreen />
         <AuthProvider>
+          <SplashScreen />
           <MainLayout>{children}</MainLayout>
           <Toaster />
         </AuthProvider>
