@@ -8,10 +8,12 @@ import { getStorage } from 'firebase-admin/storage';
 let adminApp: App | undefined;
 
 if (!admin.apps.length) {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (serviceAccountJson) {
     try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      // Vercel can sometimes mangle the private key's newlines. This fixes it.
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      
+      // Vercel can mangle the private key's newlines. This fixes it.
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
@@ -21,7 +23,7 @@ if (!admin.apps.length) {
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       });
     } catch (e) {
-      console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_JSON:', e);
+      console.error('Error initializing Firebase Admin SDK:', e);
     }
   } else if (process.env.VERCEL) {
     // In Vercel, the Admin SDK can sometimes be initialized automatically with runtime credentials.
