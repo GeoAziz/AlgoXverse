@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -14,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Wand2, Upload } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import type { ChangeEvent } from 'react';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   strategyCode: z.string().min(10, {
@@ -76,7 +78,7 @@ export default function StrategyForm({ onAnalysisComplete, setIsLoading }: Strat
       reader.onerror = () => {
          toast({
             variant: 'destructive',
-            title: 'File Read Error',
+            title: 'File ReadError',
             description: 'Could not read the selected file.',
         });
       };
