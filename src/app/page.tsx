@@ -2,9 +2,9 @@
 'use client';
 
 import React, { useEffect, useState, useTransition } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoveRight, Bot, PlusCircle, Activity, Play, Square, Info, ShieldQuestion, BarChart, HardDrive, Lock } from "lucide-react";
+import { MoveRight, Bot, PlusCircle, Activity, Play, Square, Info, ShieldQuestion, BarChart, HardDrive, Lock, Eye, TrendingUp, Percent, Target } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from '@/context/auth-context';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -89,7 +89,24 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
                     Analyzed {formatDistanceToNow(new Date(strategy.createdAt), { addSuffix: true })}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="mt-auto">
+            <CardContent className="space-y-4">
+                 <div className="flex justify-around text-center text-xs text-muted-foreground">
+                    <div className="flex flex-col items-center gap-1">
+                        <TrendingUp className="w-4 h-4 text-primary" />
+                        <span>${strategy.analysis.backtest.totalPnl.toLocaleString()}</span>
+                        <span>PnL</span>
+                    </div>
+                     <div className="flex flex-col items-center gap-1">
+                        <Target className="w-4 h-4 text-primary" />
+                        <span>{strategy.analysis.backtest.winRate.toFixed(1)}%</span>
+                        <span>Win Rate</span>
+                    </div>
+                     <div className="flex flex-col items-center gap-1">
+                        <Percent className="w-4 h-4 text-primary" />
+                        <span>{strategy.analysis.backtest.sharpeRatio?.toFixed(2) ?? 'N/A'}</span>
+                        <span>Sharpe</span>
+                    </div>
+                </div>
                  <div className="flex justify-between items-center">
                     <Badge variant={isActive ? 'default' : 'secondary'} className={cn(isActive ? 'bg-green-500/20 text-green-300 border-green-500/30' : '', 'transition-colors')}>
                         {isActive ? 'Running' : 'Stopped'}
@@ -121,6 +138,14 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
                     </div>
                 </div>
             </CardContent>
+            <CardFooter>
+                 <Link href={`/strategy/${strategy.id}`} className="w-full">
+                    <Button variant="outline" className="w-full">
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Analysis
+                    </Button>
+                </Link>
+            </CardFooter>
         </Card>
     );
 };
@@ -138,8 +163,27 @@ const StrategyCardSkeleton = () => (
         <Skeleton className="h-10 w-24" />
       </div>
     </CardContent>
+     <CardFooter>
+        <Skeleton className="h-10 w-full" />
+    </CardFooter>
   </Card>
 );
+
+const StatCard = ({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description: string }) => {
+    return (
+        <Card className="bg-card/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+                <p className="text-xs text-muted-foreground">{description}</p>
+            </CardContent>
+        </Card>
+    )
+}
+
 
 const TraderDashboard = () => {
   const { user, loading, role } = useAuth();
@@ -177,6 +221,21 @@ const TraderDashboard = () => {
     }
   }, [user, loading]);
 
+  const stats = React.useMemo(() => {
+    const runningBots = strategies.filter(s => s.status === 'running').length;
+    const totalPnl = strategies.reduce((acc, s) => acc + (s.analysis?.backtest?.totalPnl ?? 0), 0);
+    const avgWinRate = strategies.length > 0
+        ? strategies.reduce((acc, s) => acc + (s.analysis?.backtest?.winRate ?? 0), 0) / strategies.length
+        : 0;
+
+    return {
+        totalStrategies: strategies.length,
+        runningBots,
+        totalPnl: `$${totalPnl.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+        avgWinRate: `${avgWinRate.toFixed(1)}%`
+    }
+  }, [strategies]);
+
   return (
     <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -192,6 +251,13 @@ const TraderDashboard = () => {
           Welcome, Navigator. Manage your active strategies or create a new one with the AI Advisor.
         </p>
       </div>
+      
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard title="Total Strategies" value={stats.totalStrategies} icon={Bot} description="All strategies you have created." />
+          <StatCard title="Running Bots" value={stats.runningBots} icon={Play} description="Approved strategies currently active." />
+          <StatCard title="Simulated PnL" value={stats.totalPnl} icon={TrendingUp} description="Sum of all backtested PnL." />
+          <StatCard title="Average Win Rate" value={stats.avgWinRate} icon={Target} description="Average across all strategies." />
+        </div>
 
       <div className="flex justify-end">
         <Link href="/advisor">

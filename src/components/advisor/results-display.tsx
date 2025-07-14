@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { AIStrategyAdvisorOutput } from '@/ai/flows/ai-strategy-advisor';
@@ -12,6 +13,7 @@ import { useMemo } from 'react';
 
 type ResultsDisplayProps = {
   result: AIStrategyAdvisorOutput;
+  strategyName?: string;
 };
 
 const chartConfig = {
@@ -33,7 +35,7 @@ const chartConfig = {
   },
 };
 
-export default function ResultsDisplay({ result }: ResultsDisplayProps) {
+export default function ResultsDisplay({ result, strategyName }: ResultsDisplayProps) {
   const { backtest, suggestions, rationale } = result;
   
   const combinedChartData = useMemo(() => {
@@ -52,6 +54,16 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
   
   return (
     <div className="mt-6 space-y-6 animate-in fade-in-50 duration-500">
+      {strategyName && (
+        <div>
+            <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">
+                {strategyName}
+            </h1>
+            <p className="text-muted-foreground max-w-2xl">
+                Detailed AI analysis and simulated backtest results.
+            </p>
+      </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1 border-primary/30 bg-card/50 backdrop-blur-sm">
           <CardHeader>

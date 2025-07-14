@@ -30,11 +30,12 @@ import Link from 'next/link';
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isActive = (path: string) => pathname.startsWith(path);
+  const isActive = (path: string) => pathname.startsWith(path) && path !== '/';
+  const isHome = pathname === '/';
   const { user, loading, role } = useAuth();
   const [isConsoleOpen, setConsoleOpen] = React.useState(false);
   
-  const protectedRoutes = ['/advisor', '/settings'];
+  const protectedRoutes = ['/advisor', '/settings', '/strategy'];
   const adminRoutes = ['/admin'];
   const ownerRoutes = ['/owner'];
   const authRoutes = ['/auth'];
@@ -71,7 +72,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   };
 
   const isManagementRoute = adminRoutes.includes(pathname) || ownerRoutes.includes(pathname);
-  if (loading && (protectedRoutes.includes(pathname) || isManagementRoute || authRoutes.includes(pathname))) {
+  if (loading && (protectedRoutes.some(p => pathname.startsWith(p)) || isManagementRoute || authRoutes.includes(pathname))) {
     return null;
   }
   
@@ -105,7 +106,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/">
-                <SidebarMenuButton isActive={pathname === '/'} tooltip="Dashboard">
+                <SidebarMenuButton isActive={isHome} tooltip="Dashboard">
                   <LayoutDashboard />
                   <span>Dashboard</span>
                 </SidebarMenuButton>
@@ -201,7 +202,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="flex md:hidden" />
             <div className="flex-1">
               <h1 className="font-headline text-lg font-semibold capitalize">
-                {pathname.substring(1).split('/')[0] || 'Dashboard'}
+                {pathname.split('/')[1] || 'Dashboard'}
               </h1>
             </div>
           </header>
