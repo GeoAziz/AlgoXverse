@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { motion } from 'framer-motion';
 import { BarChart, CandlestickChart, ChevronDown, ChevronUp, Clock, Zap } from 'lucide-react';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Candlestick, CartesianGrid } from 'recharts';
-import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
+import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { ChartContainer, ChartTooltipContent, Candlestick } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -169,8 +169,16 @@ export function MarketView() {
                                         return null;
                                     }}
                                 />
-                                <Candlestick yAxisId="left" name="Price" dataKey="ohlc" fill="hsl(var(--primary))" stroke="hsl(var(--primary))" />
                                 <Bar yAxisId="right" name="Volume" dataKey="volume" fill="hsl(var(--chart-2) / 0.5)" />
+                                <Line
+                                  yAxisId="left"
+                                  type="linear"
+                                  dataKey="ohlc"
+                                  stroke="hsl(var(--primary))"
+                                  strokeWidth={1}
+                                  shape={<Candlestick />}
+                                  dot={false}
+                                />
                             </ComposedChart>
                         </ChartContainer>
                     </div>
