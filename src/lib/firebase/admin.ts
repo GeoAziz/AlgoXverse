@@ -1,3 +1,4 @@
+
 'use server';
 
 import admin from 'firebase-admin';
@@ -21,23 +22,28 @@ function initializeAdminApp(): FirebaseAdminServices {
     return services;
   }
 
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  // This is the new, robust way to initialize.
+  // It uses separate environment variables to avoid JSON parsing issues in Vercel.
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-  if (!serviceAccountJson) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not set.');
+  if (!process.env.FIREBASE_PROJECT_ID) {
+    throw new Error('FIREBASE_PROJECT_ID is not set.');
+  }
+  if (!process.env.FIREBASE_CLIENT_EMAIL) {
+    throw new Error('FIREBASE_CLIENT_EMAIL is not set.');
+  }
+  if (!privateKey) {
+    throw new Error('FIREBASE_PRIVATE_KEY is not set.');
   }
 
   try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-
-    // 🔥 Fix private_key line breaks for Vercel-style env escaping
-    if (typeof serviceAccount.private_key === 'string') {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    }
-
     if (admin.apps.length === 0) {
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: privateKey,
+        }),
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       });
     }
@@ -67,6 +73,7 @@ function getFirebaseAdmin(): FirebaseAdminServices {
         orderBy: () => ({ get: async () => ({ docs: [], size: 0, empty: true }) }),
         where: () => ({
           orderBy: () => ({ get: async () => ({ docs: [], size: 0, empty: true }) }),
+          get: async () => ({ docs: [], size: 0, empty: true }),
         }),
         doc: () => ({
           get: async () => ({ exists: false, data: () => null }),
