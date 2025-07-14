@@ -9,13 +9,10 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   } catch (e) {
     console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_JSON:', e);
-    throw new Error('Could not parse Firebase service account JSON. Please check the environment variable.');
   }
-} else {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set.');
 }
 
-if (!getApps().length) {
+if (!getApps().length && serviceAccount) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
