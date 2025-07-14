@@ -5,31 +5,31 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 
-let serviceAccount;
-if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-  try {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  } catch (e) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_JSON:', e);
-  }
-} else {
-  // This warning is helpful for local development.
-  console.warn(
-    'FIREBASE_SERVICE_ACCOUNT_JSON is not set. Firebase Admin SDK will not be initialized in non-Vercel environments.'
-  );
-}
-
 let adminApp: App | undefined;
 
 if (!admin.apps.length) {
-  if (serviceAccount) {
-    adminApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    });
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      // Vercel can sometimes mangle the private key's newlines. This fixes it.
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      
+      adminApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      });
+    } catch (e) {
+      console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_JSON:', e);
+    }
   } else if (process.env.VERCEL) {
-    // In Vercel, the Admin SDK is initialized automatically with runtime credentials.
+    // In Vercel, the Admin SDK can sometimes be initialized automatically with runtime credentials.
     adminApp = admin.initializeApp();
+  } else {
+    console.warn(
+      'FIREBASE_SERVICE_ACCOUNT_JSON is not set. Firebase Admin SDK will not be initialized in non-Vercel environments.'
+    );
   }
 } else {
   adminApp = admin.app();
