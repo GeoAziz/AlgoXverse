@@ -6,15 +6,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { motion } from 'framer-motion';
 import { BarChart, CandlestickChart, ChevronDown, ChevronUp, Clock, Zap } from 'lucide-react';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { ChartContainer, ChartTooltipContent, Candlestick } from '@/components/ui/chart';
+import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { ChartContainer, ChartTooltipContent, Candlestick, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Helper function to calculate Simple Moving Average (SMA)
+const calculateSMA = (data: { ohlc: number[] }[], period: number) => {
+    const sma: (number | null)[] = Array(data.length).fill(null);
+    for (let i = period - 1; i < data.length; i++) {
+        const sum = data.slice(i - period + 1, i + 1).reduce((acc, d) => acc + d.ohlc[3], 0); // use close price
+        sma[i] = sum / period;
+    }
+    return sma;
+};
 
 // Mock data generation
 const generateCandlestickData = (numPoints = 50) => {
     let lastClose = Math.random() * 100 + 40000;
-    return Array.from({ length: numPoints }, (_, i) => {
+    const baseData = Array.from({ length: numPoints }, (_, i) => {
         const open = lastClose;
         const close = open + (Math.random() - 0.5) * 2000;
         const high = Math.max(open, close) + Math.random() * 500;
@@ -25,7 +35,16 @@ const generateCandlestickData = (numPoints = 50) => {
             ohlc: [open, high, low, close],
             volume: Math.random() * 1000 + 500
         };
-    }).reverse();
+    });
+
+    const sma10 = calculateSMA(baseData, 10);
+    const sma30 = calculateSMA(baseData, 30);
+
+    return baseData.map((d, i) => ({
+        ...d,
+        sma10: sma10[i],
+        sma30: sma30[i],
+    })).reverse();
 };
 
 const assets = [
@@ -42,6 +61,14 @@ const chartConfig = {
         label: 'Volume',
         color: 'hsl(var(--chart-2))',
     },
+    sma10: {
+        label: 'SMA (10)',
+        color: 'hsl(var(--chart-3))',
+    },
+    sma30: {
+        label: 'SMA (30)',
+        color: 'hsl(var(--chart-4))',
+    }
 };
 
 export function MarketView() {
@@ -77,7 +104,7 @@ export function MarketView() {
             <div>
                 <h1 className="font-headline text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-accent">Market Data Stream</h1>
                 <p className="text-muted-foreground max-w-2xl">
-                    Live simulated market data. Analyze trends and monitor assets in real-time.
+                    Live simulated market data with technical indicators. Analyze trends and monitor assets in real-time.
                 </p>
             </div>
 
@@ -89,7 +116,7 @@ export function MarketView() {
                             <span>{selectedAsset}</span>
                         </CardTitle>
                         <CardDescription>
-                            1H Candlestick Chart (Simulated)
+                            1H Candlestick Chart with Moving Averages (Simulated)
                         </CardDescription>
                     </div>
                      <Select defaultValue={selectedAsset} onValueChange={handleAssetChange}>
@@ -153,22 +180,9 @@ export function MarketView() {
                                 />
                                 <Tooltip
                                     cursor={{fill: 'hsl(var(--primary) / 0.1)'}}
-                                    content={({ active, payload }) => {
-                                        if (active && payload && payload.length) {
-                                            const ohlc = payload[0].payload.ohlc;
-                                            const volume = payload[0].payload.volume;
-                                            return (
-                                                <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
-                                                    <p className="font-bold">{payload[0].payload.time}</p>
-                                                    <p className="text-green-400">O: ${ohlc[0].toFixed(2)} H: ${ohlc[1].toFixed(2)}</p>
-                                                    <p className="text-red-400">L: ${ohlc[2].toFixed(2)} C: ${ohlc[3].toFixed(2)}</p>
-                                                    <p className="text-blue-400">Vol: {volume.toFixed(2)}</p>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
+                                    content={<ChartTooltipContent indicator="dot" />}
                                 />
+                                <Legend content={<ChartLegendContent />} />
                                 <Bar yAxisId="right" name="Volume" dataKey="volume" fill="hsl(var(--chart-2) / 0.5)" />
                                 <Line
                                   yAxisId="left"
@@ -178,7 +192,10 @@ export function MarketView() {
                                   strokeWidth={1}
                                   shape={<Candlestick />}
                                   dot={false}
+                                  name="Price"
                                 />
+                                <Line yAxisId="left" type="monotone" dataKey="sma10" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} name="SMA (10)" />
+                                <Line yAxisId="left" type="monotone" dataKey="sma30" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} name="SMA (30)" />
                             </ComposedChart>
                         </ChartContainer>
                     </div>
