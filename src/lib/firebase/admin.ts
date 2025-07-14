@@ -3,9 +3,6 @@
 
 import admin from 'firebase-admin';
 import type { ServiceAccount } from 'firebase-admin';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
 import type { Auth } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { Storage } from 'firebase-admin/storage';
@@ -35,12 +32,7 @@ function getFirebaseAdmin(): FirebaseAdminServices {
           privateKey: parsedServiceAccount.private_key.replace(/\\n/g, '\n'),
         };
       } else {
-         // Fallback for Vercel's default credential detection
-        serviceAccount = {
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        };
+         throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set.');
       }
       
       if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
@@ -59,9 +51,9 @@ function getFirebaseAdmin(): FirebaseAdminServices {
   }
 
   services = {
-    auth: getAuth(),
-    db: getFirestore(),
-    storage: getStorage(),
+    auth: admin.auth(),
+    db: admin.firestore(),
+    storage: admin.storage(),
   };
 
   return services;
