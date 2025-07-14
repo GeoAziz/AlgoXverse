@@ -15,7 +15,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, BrainCircuit, Settings, LogIn, LogOut, ShieldCheck, UserCog, TerminalSquare } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, Settings, LogIn, LogOut, ShieldCheck, UserCog, TerminalSquare, TrendingUp } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
@@ -30,12 +30,11 @@ import Link from 'next/link';
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isActive = (path: string) => pathname.startsWith(path) && path !== '/';
-  const isHome = pathname === '/';
+  const isActive = (path: string) => pathname.startsWith(path) && (path !== '/' || pathname === '/');
   const { user, loading, role } = useAuth();
   const [isConsoleOpen, setConsoleOpen] = React.useState(false);
   
-  const protectedRoutes = ['/advisor', '/settings', '/strategy'];
+  const protectedRoutes = ['/advisor', '/settings', '/strategy', '/market'];
   const adminRoutes = ['/admin'];
   const ownerRoutes = ['/owner'];
   const authRoutes = ['/auth'];
@@ -106,7 +105,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/">
-                <SidebarMenuButton isActive={isHome} tooltip="Dashboard">
+                <SidebarMenuButton isActive={isActive('/')} tooltip="Dashboard">
                   <LayoutDashboard />
                   <span>Dashboard</span>
                 </SidebarMenuButton>
@@ -114,6 +113,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenuItem>
             {user && (
               <>
+                <SidebarMenuItem>
+                  <Link href="/market">
+                    <SidebarMenuButton isActive={isActive('/market')} tooltip="Market">
+                      <TrendingUp />
+                      <span>Market</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <Link href="/advisor">
                     <SidebarMenuButton isActive={isActive('/advisor')} tooltip="AI Advisor">
