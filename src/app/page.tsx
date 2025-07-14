@@ -198,7 +198,7 @@ const TraderDashboard = () => {
       }
       try {
         setStrategiesLoading(true);
-        const q = query(collection(db, 'strategies'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'strategies'), where('userId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         const userStrategies = querySnapshot.docs.map(doc => {
             const data = doc.data();

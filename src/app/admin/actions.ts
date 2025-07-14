@@ -38,7 +38,7 @@ export async function getStrategiesForApproval(): Promise<SerializableStrategy[]
         console.error("Firebase Admin DB not initialized");
         return [];
     }
-     const snapshot = await adminDb.collection('strategies').where('approvalStatus', '==', 'pending').orderBy('createdAt', 'desc').get();
+     const snapshot = await adminDb.collection('strategies').where('approvalStatus', '==', 'pending').get();
      return snapshot.docs.map(doc => {
         const strategy = { id: doc.id, ...doc.data() } as Strategy;
         return {
