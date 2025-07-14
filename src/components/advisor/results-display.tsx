@@ -4,43 +4,51 @@ import type { AIStrategyAdvisorOutput } from '@/ai/flows/ai-strategy-advisor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, Bot } from 'lucide-react';
-import { ComposedChart, Line, CartesianGrid, XAxis, Tooltip, ResponsiveContainer, YAxis, Scatter } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Lightbulb, Bot, TrendingUp, Wallet } from 'lucide-react';
+import { ComposedChart, Line, CartesianGrid, XAxis, Tooltip, ResponsiveContainer, YAxis, Scatter, Legend } from 'recharts';
+import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
 type ResultsDisplayProps = {
   result: AIStrategyAdvisorOutput;
 };
 
 const chartConfig = {
+  price: {
+    label: 'Price ($)',
+    color: 'hsl(var(--chart-1))',
+  },
   pnl: {
     label: 'PnL ($)',
-    color: 'hsl(var(--primary))',
+    color: 'hsl(var(--chart-4))',
   },
   buy: {
-    label: 'Buy',
+    label: 'Buy Signal',
     color: 'hsl(var(--chart-2))',
   },
   sell: {
-    label: 'Sell',
+    label: 'Sell Signal',
     color: 'hsl(var(--destructive))',
   },
 };
 
 export default function ResultsDisplay({ result }: ResultsDisplayProps) {
   const { backtest, suggestions, rationale } = result;
+  
+  const combinedChartData = useMemo(() => {
+    return backtest.priceData?.map(pricePoint => {
+      const pnlPoint = backtest.pnlData.find(p => p.day === pricePoint.day);
+      return {
+        day: pricePoint.day,
+        price: pricePoint.price,
+        pnl: pnlPoint ? pnlPoint.pnl : null,
+      };
+    }) ?? backtest.pnlData;
+  }, [backtest.priceData, backtest.pnlData]);
 
-  const tradeEvents = backtest.chartEvents?.map(e => {
-    const pnlPoint = backtest.pnlData.find(p => p.day === e.day);
-    return {
-      ...e,
-      pnl: pnlPoint ? pnlPoint.pnl : null,
-    };
-  }).filter(e => e.pnl !== null) ?? [];
-
-  const buyEvents = tradeEvents.filter(e => e.type === 'BUY');
-  const sellEvents = tradeEvents.filter(e => e.type === 'SELL');
+  const buyEvents = backtest.chartEvents?.filter(e => e.type === 'BUY') ?? [];
+  const sellEvents = backtest.chartEvents?.filter(e => e.type === 'SELL') ?? [];
   
   return (
     <div className="mt-6 space-y-6 animate-in fade-in-50 duration-500">
@@ -72,7 +80,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
       <Card className="bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="font-headline text-xl">Simulated Performance</CardTitle>
-          <CardDescription>AI-generated backtest results based on historical patterns.</CardDescription>
+          <CardDescription>AI-generated backtest results showing price action, trade signals, and PnL.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 text-center">
@@ -97,19 +105,26 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                 <CardContent><p className="text-sm text-muted-foreground">Sharpe Ratio</p></CardContent>
             </Card>
           </div>
-          <div className="h-[350px] w-full">
+          <div className="h-[400px] w-full">
              <ChartContainer config={chartConfig} className="w-full h-full">
-                <ComposedChart data={backtest.pnlData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                <ComposedChart data={combinedChartData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
                     <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" tickFormatter={(tick) => `Day ${tick}`} />
-                    <YAxis dataKey="pnl" stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `$${value}`} />
+                    <YAxis yAxisId="left" dataKey="price" stroke="hsl(var(--chart-1))" tickFormatter={(value) => `$${value}`} />
+                    <YAxis yAxisId="right" orientation="right" dataKey="pnl" stroke="hsl(var(--chart-4))" tickFormatter={(value) => `$${value}`} />
+                    
                     <Tooltip 
                         cursor={{fill: 'hsl(var(--primary) / 0.1)'}} 
-                        content={<ChartTooltipContent indicator="line" />}
+                        content={<ChartTooltipContent indicator="dot" />}
                     />
-                    <Line type="monotone" dataKey="pnl" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                    <Scatter name="Buy" data={buyEvents} fill="hsl(var(--chart-2))" shape="triangle" />
-                    <Scatter name="Sell" data={sellEvents} fill="hsl(var(--destructive))" shape="cross" />
+                    
+                    <Legend content={<ChartLegendContent />} />
+                    
+                    <Line yAxisId="left" type="monotone" dataKey="price" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} name="Price" />
+                    <Line yAxisId="right" type="monotone" dataKey="pnl" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} name="PnL" strokeDasharray="5 5" />
+
+                    <Scatter yAxisId="left" name="Buy Signal" data={buyEvents} fill="hsl(var(--chart-2))" shape="triangle" />
+                    <Scatter yAxisId="left" name="Sell Signal" data={sellEvents} fill="hsl(var(--destructive))" shape="cross" />
                 </ComposedChart>
             </ChartContainer>
           </div>

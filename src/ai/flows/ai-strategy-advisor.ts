@@ -45,8 +45,9 @@ const BacktestMetricsSchema = z.object({
   profitFactor: z.number().describe('Ratio of gross profit to gross loss. Greater than 1 is profitable.'),
   totalTrades: z.number().describe('Total number of trades executed.'),
   pnlData: z.array(z.object({ day: z.number(), pnl: z.number() })).describe('An array of 15-20 data points for a PnL chart over time (e.g., by day).'),
+  priceData: z.array(z.object({ day: z.number(), price: z.number() })).describe('An array of corresponding price data points for a price chart over time.'),
   tradeLog: z.array(TradeLogEntrySchema).max(5).describe('A log of the 5 most significant simulated trades from the backtest.'),
-  chartEvents: z.array(ChartEventSchema).describe('An array of buy and sell events to be plotted on the performance chart.'),
+  chartEvents: z.array(ChartEventSchema).describe('An array of buy and sell events to be plotted on the performance chart. The price for each event should correspond to the priceData.'),
   sharpeRatio: z.number().optional().describe('The calculated Sharpe Ratio of the strategy.'),
 });
 
@@ -100,11 +101,11 @@ Historical Market Data:
 
 First, provide specific suggestions for optimizing the trading strategy. Include the rationale behind each suggestion, explaining why it may improve performance. Focus on aspects like parameter adjustments, risk management techniques, and alternative trading rules.
 
-Second, run a plausible simulation of a backtest based on the strategy and historical data. Generate realistic performance metrics for the 'backtest' output field.
+Second, run a plausible simulation of a backtest based on the strategy and historical data. Generate realistic performance metrics for the 'backtest' output field. This must include both 'pnlData' and a corresponding 'priceData' array that represents a plausible market price movement for the asset over the same period.
 
 Third, use the 'calculateAdvancedMetrics' tool to calculate the Sharpe Ratio for the generated PnL data. Include this Sharpe Ratio in your analysis and in the 'backtest.sharpeRatio' output field. Your rationale should explain what this Sharpe Ratio indicates about the strategy's risk-adjusted performance.
 
-Finally, generate a series of BUY and SELL events for the 'backtest.chartEvents' field that correspond to the PnL data, which can be used to visualize trades on a chart.
+Finally, generate a series of BUY and SELL events for the 'backtest.chartEvents' field. These events should be plotted against the 'priceData' and their prices should be consistent with it.
 
 Output your complete analysis in the required structured format.
 `,
