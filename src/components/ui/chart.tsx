@@ -356,26 +356,24 @@ function getPayloadConfigFromPayload(
 }
 
 const Candlestick = (props: any) => {
-  const { x, y, width, height, low, high, openClose, fill, stroke } = props;
+  const { x, y, width, height, low, high, openClose } = props;
   const isGrowing = openClose[1] >= openClose[0];
   const color = isGrowing ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const ratio = Math.abs(height / (openClose[1] - openClose[0]));
 
   return (
-    <g stroke={color} fill={color} strokeWidth="1">
+    <g stroke={color} fill="none" strokeWidth="1">
       <path
-        d={`M${x},${y} L${x},${y + height} M${x + width / 2},${y + height} L${x + width / 2},${y + (openClose[1] - low) * ratio}`}
-        stroke={color}
+        d={`M ${x + width / 2},${y + height} L ${x + width / 2},${y + (openClose[1] - low) * ratio}`}
       />
       <path
-        d={`M${x + width / 2},${y} L${x + width / 2},${y + (high - openClose[1]) * ratio}`}
-        stroke={color}
+        d={`M ${x + width / 2},${y} L ${x + width / 2},${y + (high - openClose[1]) * ratio}`}
       />
       <rect
         x={x}
         y={y + (high - Math.max(openClose[0], openClose[1])) * ratio}
         width={width}
-        height={Math.abs(openClose[0] - openClose[1]) * ratio}
+        height={Math.max(1, Math.abs(openClose[0] - openClose[1]) * ratio)}
         fill={color}
       />
     </g>

@@ -76,6 +76,7 @@ export function MarketView() {
     const [data, setData] = useState(generateCandlestickData());
 
     const marketStats = useMemo(() => {
+        if (!data || data.length === 0) return { price: 0, change: 0, changePercent: 0, volume: 0 };
         const firstPrice = data[0].ohlc[3];
         const lastPrice = data[data.length - 1].ohlc[3];
         const change = lastPrice - firstPrice;
@@ -142,7 +143,7 @@ export function MarketView() {
                                     {marketStats.change >= 0 ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
                                     ${Math.abs(marketStats.change).toFixed(2)}
                                 </CardTitle>
-                            </CardHeader>
+                            </Header>
                             <CardContent><p className="text-sm text-muted-foreground">Change (24h)</p></CardContent>
                         </Card>
                         <Card className='bg-background/30'>
@@ -150,7 +151,7 @@ export function MarketView() {
                                 <CardTitle className={cn(marketStats.changePercent >= 0 ? 'text-green-400' : 'text-red-400')}>
                                     {marketStats.changePercent.toFixed(2)}%
                                 </CardTitle>
-                            </CardHeader>
+                            </Header>
                             <CardContent><p className="text-sm text-muted-foreground">% Change (24h)</p></CardContent>
                         </Card>
                          <Card className='bg-background/30'>
