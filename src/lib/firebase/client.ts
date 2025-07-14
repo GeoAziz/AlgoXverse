@@ -19,7 +19,8 @@ let db: Firestore;
 let storage: FirebaseStorage;
 
 // Initialize Firebase only on the client side
-if (typeof window !== 'undefined' && !getApps().length) {
+if (typeof window !== 'undefined') {
+  if (getApps().length === 0) {
     // Check if all required environment variables are present
     const areAllVarsDefined =
         firebaseConfig.apiKey &&
@@ -31,22 +32,25 @@ if (typeof window !== 'undefined' && !getApps().length) {
 
     if (areAllVarsDefined) {
         app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        storage = getStorage(app);
     } else {
         console.error('Firebase client environment variables are not fully set. Firebase features will be disabled.');
         // Provide dummy objects to prevent app crash if vars are missing
         app = {} as FirebaseApp;
-        auth = {} as Auth;
-        db = {} as Firestore;
-        storage = {} as FirebaseStorage;
     }
-} else if (getApps().length) {
+  } else {
     app = getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
+  }
+
+  try {
+      auth = getAuth(app);
+      db = getFirestore(app);
+      storage = getStorage(app);
+  } catch (e) {
+      console.error("Failed to initialize Firebase services, likely due to missing config.", e);
+      auth = {} as Auth;
+      db = {} as Firestore;
+      storage = {} as FirebaseStorage;
+  }
 } else {
     // Provide dummy objects for server-side build
     app = {} as FirebaseApp;
@@ -54,5 +58,6 @@ if (typeof window !== 'undefined' && !getApps().length) {
     db = {} as Firestore;
     storage = {} as FirebaseStorage;
 }
+
 
 export { app, auth, db, storage };
