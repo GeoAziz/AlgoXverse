@@ -2,6 +2,7 @@
 'use server';
 
 import admin from 'firebase-admin';
+import type { ServiceAccount } from 'firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -17,79 +18,55 @@ interface FirebaseAdminServices {
 
 let services: FirebaseAdminServices | undefined = undefined;
 
-function initializeAdminApp(): FirebaseAdminServices {
+function getFirebaseAdmin(): FirebaseAdminServices {
   if (services) {
     return services;
   }
 
-  // This is the new, robust way to initialize.
-  // It uses separate environment variables to avoid JSON parsing issues in Vercel.
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  if (admin.apps.length === 0) {
+    try {
+      let serviceAccount: ServiceAccount;
 
-  if (!process.env.FIREBASE_PROJECT_ID) {
-    throw new Error('FIREBASE_PROJECT_ID is not set.');
-  }
-  if (!process.env.FIREBASE_CLIENT_EMAIL) {
-    throw new Error('FIREBASE_CLIENT_EMAIL is not set.');
-  }
-  if (!privateKey) {
-    throw new Error('FIREBASE_PRIVATE_KEY is not set.');
-  }
-
-  try {
-    if (admin.apps.length === 0) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
+      if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+        const parsedServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+        // Vercel escapes newlines in multiline env vars. We need to un-escape them.
+        serviceAccount = {
+          ...parsedServiceAccount,
+          privateKey: parsedServiceAccount.private_key.replace(/\\n/g, '\n'),
+        };
+      } else {
+         // Fallback for Vercel's default credential detection
+        serviceAccount = {
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: privateKey,
-        }),
+          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+        };
+      }
+      
+      if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
+        throw new Error('Firebase Admin credentials are not fully set in environment variables.');
+      }
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       });
+
+    } catch (error: any) {
+      console.error('🔥 Firebase Admin Initialization Error:', error.message);
+      throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
     }
-
-    services = {
-      auth: getAuth(),
-      db: getFirestore(),
-      storage: getStorage(),
-    };
-
-    return services;
-  } catch (error: any) {
-    console.error('🔥 Firebase Admin Initialization Error:', error.message);
-    throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
   }
+
+  services = {
+    auth: getAuth(),
+    db: getFirestore(),
+    storage: getStorage(),
+  };
+
+  return services;
 }
 
-function getFirebaseAdmin(): FirebaseAdminServices {
-  try {
-    return initializeAdminApp();
-  } catch (error) {
-    console.warn((error as Error).message);
-    console.warn('⚠️ Returning dummy Firebase Admin services. This is expected during build if env vars are missing.');
+const { auth: adminAuth, db: adminDb, storage: adminStorage } = getFirebaseAdmin();
 
-    const dummyDb = {
-      collection: () => ({
-        orderBy: () => ({ get: async () => ({ docs: [], size: 0, empty: true }) }),
-        where: () => ({
-          orderBy: () => ({ get: async () => ({ docs: [], size: 0, empty: true }) }),
-          get: async () => ({ docs: [], size: 0, empty: true }),
-        }),
-        doc: () => ({
-          get: async () => ({ exists: false, data: () => null }),
-          update: async () => {},
-        }),
-        add: async () => ({ id: 'dummy' }),
-        get: async () => ({ docs: [], size: 0, empty: true }),
-      }),
-    } as unknown as Firestore;
-
-    return {
-      auth: {} as Auth,
-      db: dummyDb,
-      storage: {} as Storage,
-    };
-  }
-}
-
-export const { auth: adminAuth, db: adminDb, storage: adminStorage } = getFirebaseAdmin();
+export { adminAuth, adminDb, adminStorage };
