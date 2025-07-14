@@ -18,46 +18,33 @@ let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
 
-// Initialize Firebase only on the client side
 if (typeof window !== 'undefined') {
-  if (getApps().length === 0) {
-    // Check if all required environment variables are present
-    const areAllVarsDefined =
-        firebaseConfig.apiKey &&
-        firebaseConfig.authDomain &&
-        firebaseConfig.projectId &&
-        firebaseConfig.storageBucket &&
-        firebaseConfig.messagingSenderId &&
-        firebaseConfig.appId;
-
-    if (areAllVarsDefined) {
-        app = initializeApp(firebaseConfig);
+    if (!getApps().length) {
+        try {
+            app = initializeApp(firebaseConfig);
+        } catch (e) {
+            console.error('Failed to initialize Firebase, check your environment variables.', e);
+            app = {} as FirebaseApp;
+        }
     } else {
-        console.error('Firebase client environment variables are not fully set. Firebase features will be disabled.');
-        // Provide dummy objects to prevent app crash if vars are missing
-        app = {} as FirebaseApp;
+        app = getApp();
     }
-  } else {
-    app = getApp();
-  }
 
-  try {
-      auth = getAuth(app);
-      db = getFirestore(app);
-      storage = getStorage(app);
-  } catch (e) {
-      console.error("Failed to initialize Firebase services, likely due to missing config.", e);
-      auth = {} as Auth;
-      db = {} as Firestore;
-      storage = {} as FirebaseStorage;
-  }
+    try {
+        auth = getAuth(app);
+        db = getFirestore(app);
+        storage = getStorage(app);
+    } catch (e) {
+        console.error("Failed to initialize Firebase services, likely due to missing config.", e);
+        auth = {} as Auth;
+        db = {} as Firestore;
+        storage = {} as FirebaseStorage;
+    }
 } else {
-    // Provide dummy objects for server-side build
     app = {} as FirebaseApp;
     auth = {} as Auth;
     db = {} as Firestore;
     storage = {} as FirebaseStorage;
 }
-
 
 export { app, auth, db, storage };
