@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { motion } from 'framer-motion';
 import { BarChart, CandlestickChart, ChevronDown, ChevronUp, Clock, Zap } from 'lucide-react';
 import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { ChartContainer, ChartTooltipContent, Candlestick, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -143,7 +143,7 @@ export function MarketView() {
                                     {marketStats.change >= 0 ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
                                     ${Math.abs(marketStats.change).toFixed(2)}
                                 </CardTitle>
-                            </Header>
+                            </CardHeader>
                             <CardContent><p className="text-sm text-muted-foreground">Change (24h)</p></CardContent>
                         </Card>
                         <Card className='bg-background/30'>
@@ -151,7 +151,7 @@ export function MarketView() {
                                 <CardTitle className={cn(marketStats.changePercent >= 0 ? 'text-green-400' : 'text-red-400')}>
                                     {marketStats.changePercent.toFixed(2)}%
                                 </CardTitle>
-                            </Header>
+                            </CardHeader>
                             <CardContent><p className="text-sm text-muted-foreground">% Change (24h)</p></CardContent>
                         </Card>
                          <Card className='bg-background/30'>
@@ -191,7 +191,30 @@ export function MarketView() {
                                   dataKey="ohlc"
                                   stroke="hsl(var(--primary))"
                                   strokeWidth={1}
-                                  shape={<Candlestick />}
+                                  shape={(props: any) => {
+                                      const { payload, x, y, width, height } = props;
+                                      const isGrowing = payload.ohlc[3] >= payload.ohlc[0];
+                                      const color = isGrowing ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+                                      const open = payload.ohlc[0];
+                                      const high = payload.ohlc[1];
+                                      const low = payload.ohlc[2];
+                                      const close = payload.ohlc[3];
+
+                                      const yAxis = props.yAxis;
+                                      const yRange = yAxis.scale.range();
+                                      const yDomain = yAxis.scale.domain();
+
+                                      const getY = (value: number) => {
+                                        return yAxis.scale(value);
+                                      };
+
+                                      return (
+                                        <g stroke={color} fill={isGrowing ? 'transparent' : color} strokeWidth="1">
+                                          <line x1={x + width / 2} y1={getY(low)} x2={x + width / 2} y2={getY(high)} />
+                                          <rect x={x} y={getY(Math.max(open, close))} width={width} height={Math.max(1, Math.abs(getY(open) - getY(close)))} fill={color} />
+                                        </g>
+                                      );
+                                    }}
                                   dot={false}
                                   name="Price"
                                 />
@@ -248,4 +271,5 @@ export function MarketView() {
             </div>
         </motion.div>
     );
-}
+
+    
