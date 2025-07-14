@@ -271,5 +271,4 @@ export function MarketView() {
             </div>
         </motion.div>
     );
-
-    
+}
