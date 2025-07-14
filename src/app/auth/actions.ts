@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -10,6 +11,9 @@ const registerSchema = z.object({
 });
 
 export async function signUpWithEmail(values: z.infer<typeof registerSchema>) {
+  if (!adminDb || !adminAuth) {
+    throw new Error("Firebase Admin not initialized");
+  }
   try {
     const { email, password } = registerSchema.parse(values);
 

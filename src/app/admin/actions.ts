@@ -6,6 +6,10 @@ import type { AppUser, SerializableAppUser, SerializableStrategy, Strategy, User
 import { revalidatePath } from 'next/cache';
 
 export async function getAllUsers(): Promise<SerializableAppUser[]> {
+    if (!adminDb) {
+        console.error("Firebase Admin DB not initialized");
+        return [];
+    }
     const usersSnapshot = await adminDb.collection('users').orderBy('createdAt', 'desc').get();
     return usersSnapshot.docs.map(doc => {
         const user = doc.data() as AppUser;
@@ -17,6 +21,9 @@ export async function getAllUsers(): Promise<SerializableAppUser[]> {
 }
 
 export async function updateUserRole(uid: string, role: UserRole) {
+    if (!adminAuth || !adminDb) {
+        throw new Error("Firebase Admin not initialized");
+    }
     if (role === 'owner') {
         throw new Error("Cannot assign 'owner' role.");
     }
@@ -27,6 +34,10 @@ export async function updateUserRole(uid: string, role: UserRole) {
 }
 
 export async function getStrategiesForApproval(): Promise<SerializableStrategy[]> {
+     if (!adminDb) {
+        console.error("Firebase Admin DB not initialized");
+        return [];
+    }
      const snapshot = await adminDb.collection('strategies').where('approvalStatus', '==', 'pending').orderBy('createdAt', 'desc').get();
      return snapshot.docs.map(doc => {
         const strategy = { id: doc.id, ...doc.data() } as Strategy;
@@ -38,6 +49,10 @@ export async function getStrategiesForApproval(): Promise<SerializableStrategy[]
 }
 
 export async function getStrategyById(strategyId: string): Promise<SerializableStrategy | null> {
+    if (!adminDb) {
+        console.error("Firebase Admin DB not initialized");
+        return null;
+    }
     const doc = await adminDb.collection('strategies').doc(strategyId).get();
     if (!doc.exists) {
         return null;
@@ -51,6 +66,9 @@ export async function getStrategyById(strategyId: string): Promise<SerializableS
 
 
 export async function updateStrategyApproval(strategyId: string, status: 'approved' | 'rejected') {
+    if (!adminDb) {
+        throw new Error("Firebase Admin not initialized");
+    }
     await adminDb.collection('strategies').doc(strategyId).update({ approvalStatus: status });
     revalidatePath('/admin');
     revalidatePath('/'); // Revalidate home page for the user
@@ -59,6 +77,9 @@ export async function updateStrategyApproval(strategyId: string, status: 'approv
 
 
 export async function getSystemStats() {
+    if (!adminDb) {
+        throw new Error("Firebase Admin not initialized");
+    }
     const usersPromise = adminDb.collection('users').get();
     const strategiesPromise = adminDb.collection('strategies').get();
     const approvedStrategiesPromise = adminDb.collection('strategies').where('approvalStatus', '==', 'approved').get();

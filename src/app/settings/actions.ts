@@ -11,6 +11,9 @@ const profileSchema = z.object({
 });
 
 export async function updateProfile(uid: string, displayName: string) {
+  if (!adminAuth || !adminDb) {
+    throw new Error("Firebase Admin not initialized");
+  }
   try {
     profileSchema.parse({ uid, displayName });
     

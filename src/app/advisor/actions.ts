@@ -1,3 +1,4 @@
+
 'use server';
 
 import { analyzeStrategy, AIStrategyAdvisorInput, AIStrategyAdvisorOutput } from '@/ai/flows/ai-strategy-advisor';
@@ -41,6 +42,9 @@ export async function saveStrategyAnalysis(
   strategyCode: string,
   analysis: AIStrategyAdvisorOutput
 ) {
+  if (!adminDb) {
+    throw new Error("Firebase Admin not initialized");
+  }
   if (!userId) {
     throw new Error("User must be authenticated to save a strategy.");
   }
@@ -85,6 +89,9 @@ export async function saveStrategyAnalysis(
 
 
 export async function updateStrategyStatus(strategyId: string, status: 'running' | 'stopped') {
+    if (!adminDb) {
+        throw new Error("Firebase Admin not initialized");
+    }
     if (!strategyId) {
         throw new Error("Strategy ID is required.");
     }
